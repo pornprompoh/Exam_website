@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import Navbar from '../../components/common/Navbar'
+import LoadingScreen from '../../components/common/LoadingScreen'
+import EmptyState from '../../components/common/EmptyState'
+import ConfirmModal from '../../components/common/ConfirmModal'
 
 export default function MistakeBank() {
   const [mistakes, setMistakes] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [filterCategory, setFilterCategory] = useState('ALL')
   const [categories, setCategories] = useState([])
+  const [selectedCategory, setSelectedCategory] = useState('ALL')
+  const [loading, setLoading] = useState(true)
+  const [modalTarget, setModalTarget] = useState(null)
 
   useEffect(() => {
     fetchMistakes()
@@ -15,50 +19,44 @@ export default function MistakeBank() {
   async function fetchMistakes() {
     setLoading(true)
     try {
-      // 1. ดึงข้อที่ทำผิดทั้งหมด ที่ยังไม่ได้กดปลดล็อก (is_resolved = false)
-      // พร้อมดึงข้อมูลโจทย์ (questions) และชื่อวิชา (categories) มาโชว์ด้วย
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
       const { data, error } = await supabase
         .from('mistake_bank')
         .select(`
           id,
           user_answer,
+          is_resolved,
           created_at,
           questions (
             id,
             question_text,
-            image_url,
             options,
             correct_option,
             explanation,
+            image_url,
             explanation_image_url,
             category_id,
-            categories (
-              id,
-              name
-            )
+            categories ( name )
           )
         `)
+        .eq('user_id', session.user.id)
         .eq('is_resolved', false)
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      // กรองเอาเฉพาะรายการที่ยังมีข้อสอบอยู่ในระบบ (ป้องกัน error กรณีข้อสอบถูกลบไปแล้ว)
       const validMistakes = (data || []).filter(item => item.questions !== null)
       setMistakes(validMistakes)
 
-      // 2. ดึงรายชื่อวิชาทั้งหมดที่มีในคลังข้อผิด เพื่อเอามาทำตัวกรอง (Filter dropdown)
-      const uniqueCats = []
-      const map = new Map()
-      validMistakes.forEach(item => {
-        const cat = item.questions?.categories
-        if (cat && !map.has(cat.id)) {
-          map.set(cat.id, true)
-          uniqueCats.push(cat)
+      const catMap = {}
+      validMistakes.forEach(m => {
+        if (m.questions?.categories) {
+          catMap[m.questions.category_id] = m.questions.categories.name
         }
       })
-      setCategories(uniqueCats)
-
+      setCategories(Object.entries(catMap).map(([id, name]) => ({ id, name })))
     } catch (err) {
       alert('ดึงข้อมูลคลังข้อผิดไม่สำเร็จ: ' + err.message)
     } finally {
@@ -66,182 +64,185 @@ export default function MistakeBank() {
     }
   }
 
-  // ฟังก์ชันกด "ทบทวนเข้าใจแล้ว" (เปลี่ยนสถานะ is_resolved เป็น true)
-  async function handleResolve(mistakeId) {
+  async function handleConfirmResolve() {
+    if (!modalTarget) return
+    const id = modalTarget.id
+
     try {
       const { error } = await supabase
         .from('mistake_bank')
         .update({ is_resolved: true })
-        .eq('id', mistakeId)
+        .eq('id', id)
 
       if (error) throw error
-
-      // ลบข้อนั้นออกจากหน้าเว็บทันที
-      setMistakes(prev => prev.filter(m => m.id !== mistakeId))
+      
+      setMistakes((prev) => prev.filter((item) => item.id !== id))
+      setModalTarget(null)
     } catch (err) {
-      alert('เกิดข้อผิดพลาด: ' + err.message)
+      alert('ไม่สามารถอัปเดตสถานะได้: ' + err.message)
     }
   }
 
-  // กรองข้อผิดตามวิชาที่เลือก
-  const filteredMistakes = filterCategory === 'ALL' 
-    ? mistakes 
-    : mistakes.filter(m => m.questions?.category_id === filterCategory)
+  const filteredMistakes = mistakes.filter((m) => {
+    if (selectedCategory === 'ALL') return true
+    return String(m.questions?.category_id) === String(selectedCategory)
+  })
 
   return (
-    <div className="min-h-screen bg-slate-100 pb-12 font-sans">
-      {/* Top Bar */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 shadow-xs">
-        <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/" className="text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors">
-              ← กลับหน้าแรก
-            </Link>
-            <h1 className="font-extrabold text-slate-800 text-lg flex items-center gap-2">
-              📑 คลังข้อผิดของฉัน <span className="text-xs bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full font-mono">{mistakes.length} ข้อ</span>
-            </h1>
+    <div className="min-h-screen bg-slate-50/70 font-sans text-slate-800 pb-24 overflow-x-hidden">
+      
+      <ConfirmModal
+        isOpen={!!modalTarget}
+        type="success"
+        title="ทบทวนข้อนี้เข้าใจแล้วใช่ไหม?"
+        description={
+          <>
+            ข้อสอบนี้จะถูกลบออกจากคลังข้อผิดพลาดของคุณ และจะไม่แสดงในรายการทบทวนอีก<br/>
+            คุณสามารถกลับมาฝึกทำข้อสอบวิชานี้ใหม่ได้เสมอที่หน้าแรกครับ
+          </>
+        }
+        cancelText="← เก็บไว้ทบทวนต่อ"
+        confirmText="✨ เข้าใจแล้ว นำออกเลย"
+        onClose={() => setModalTarget(null)}
+        onConfirm={handleConfirmResolve}
+      />
+
+      <Navbar showNavPills={true} />
+
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-12 sm:py-16 border-b border-slate-700 shadow-inner">
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white mb-3">
+            คลังข้อผิดพลาด และสมุดทบทวน 💡
+          </h1>
+          <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
+            ระบบรวบรวมข้อที่คุณเคยทำผิดหรือลืมตอบไว้โดยอัตโนมัติ กลับมาทบทวนเฉลยละเอียดที่นี่ และกดนำออกเมื่อคุณทำความเข้าใจข้อนั้นได้อย่างถ่องแท้แล้วครับ
+          </p>
+        </div>
+      </div>
+
+      <div className="max-w-5xl mx-auto px-6 mt-8 min-w-0">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-4 mb-8 min-w-0">
+          <div className="flex items-center gap-2.5">
+            <span className="text-lg">🔍</span>
+            <span className="font-extrabold text-slate-800 text-sm">กรองตามหมวดวิชา:</span>
+          </div>
+          
+          <div className="w-full sm:w-auto sm:max-w-xs min-w-[220px]">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-200 text-slate-700 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all cursor-pointer"
+            >
+              <option value="ALL">💡 แสดงทั้งหมด ({mistakes.length} ข้อ)</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id}>📖 {cat.name}</option>
+              ))}
+            </select>
           </div>
         </div>
-      </header>
 
-      <div className="max-w-4xl mx-auto px-6 mt-8">
-        
-        {/* กล่องคำอธิบาย และ ตัวกรองวิชา */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="font-bold text-slate-800 text-base mb-1">💡 ทบทวนจุดอ่อนเพื่อปิดประตูพลาด</h2>
-            <p className="text-xs text-slate-500">
-              ข้อสอบที่คุณเคยตอบผิดจะถูกมารวมไว้ที่นี่ เมื่ออ่านเฉลยจนเข้าใจแล้ว ให้กดปุ่ม "เข้าใจแล้ว" เพื่อนำออกจากรายการ
-            </p>
-          </div>
-
-          {/* ตัวกรองหมวดหมู่ */}
-          {categories.length > 0 && (
-            <div className="shrink-0">
-              <select
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none"
-              >
-                <option value="ALL">📚 แสดงทุกวิชา ({mistakes.length})</option>
-                {categories.map(cat => {
-                  const count = mistakes.filter(m => m.questions?.category_id === cat.id).length
-                  return (
-                    <option key={cat.id} value={cat.id}>{cat.name} ({count})</option>
-                  )
-                })}
-              </select>
-            </div>
-          )}
-        </div>
-
-        {/* รายการข้อผิด */}
         {loading ? (
-          <div className="text-center py-12 text-slate-400 text-sm animate-pulse">
-            ⏳ กำลังโหลดคลังข้อผิดของคุณ...
-          </div>
+          <LoadingScreen text="กำลังเปิดสมุดคลังข้อผิดพลาด..." />
         ) : filteredMistakes.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-            <div className="text-4xl mb-3">🎉</div>
-            <h3 className="font-bold text-slate-800 text-lg mb-1">เยี่ยมมาก! ไม่มีข้อผิดค้างอยู่ในคลังเลย</h3>
-            <p className="text-slate-400 text-sm mb-6">คุณทบทวนข้อผิดจนครบหมดแล้ว หรือยังไม่เคยทำข้อสอบพลาดเลยครับ</p>
-            <Link to="/" className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-colors shadow-sm inline-block">
-              🚀 ไปฝึกทำข้อสอบเพิ่มกันเลย
-            </Link>
-          </div>
+          <EmptyState 
+            icon="🎉"
+            title="สุดยอดมาก! คลังข้อผิดว่างเปล่า"
+            description="คุณยังไม่มีข้อที่ทำผิดในหมวดนี้ หรือคุณได้ทำการทบทวนและทำความเข้าใจจนครบหมดแล้วครับ"
+            actionText="กลับไปเลือกวิชาสอบ"
+            onAction={() => window.location.href = '/'}
+          />
         ) : (
-          <div className="space-y-6">
-            {filteredMistakes.map((item, index) => {
+          <div className="space-y-6 min-w-0">
+            {filteredMistakes.map((item, idx) => {
               const q = item.questions
               const userAnswerIdx = item.user_answer !== null ? Number(item.user_answer) : null
               const correctIdx = Number(q.correct_option)
 
               return (
-                <div key={item.id} className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm relative overflow-hidden">
-                  
-                  {/* แถบหัวข้อบอกวิชา และ วันที่ทำผิด */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-slate-100 text-xs">
-                    <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 font-bold rounded-lg">
-                      📖 {q.categories?.name || 'ทั่วไป'}
-                    </span>
-                    <span className="text-slate-400">
-                      ทำผิดเมื่อ: {new Date(item.created_at).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} น.
-                    </span>
-                  </div>
-
-                  {/* คำถาม / โจทย์ */}
-                  <div className="font-semibold text-slate-800 text-base mb-4 leading-relaxed whitespace-pre-wrap">
-                    <span className="text-indigo-600 font-bold mr-2">#{index + 1}.</span>
-                    {q.question_text}
-                  </div>
-
-                  {/* รูปโจทย์ (ถ้ามี) */}
-                  {q.image_url && (
-                    <div className="mb-4 bg-slate-50 p-2 rounded-xl border border-slate-200 flex justify-center">
-                      <img src={q.image_url} alt="รูปโจทย์" className="max-h-60 object-contain rounded-lg" loading="lazy" />
+                <div 
+                  key={item.id} 
+                  className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden hover:shadow-md transition-all min-w-0"
+                >
+                  <div className="bg-slate-100/80 px-6 py-3.5 border-b border-slate-200/60 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-slate-600 min-w-0">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-2 h-2 rounded-full bg-red-500 inline-block shrink-0"/>
+                      <span className="text-slate-900 font-extrabold truncate">📖 {q.categories?.name || 'หมวดวิชาทั่วไป'}</span>
+                      <span className="text-slate-300 shrink-0">|</span>
+                      <span className="shrink-0">รายการที่ #{idx + 1}</span>
                     </div>
-                  )}
-
-                  {/* ช้อยส์ทั้งหมด */}
-                  <div className="space-y-2 mb-6">
-                    {q.options?.map((optText, idx) => {
-                      const isUserChoice = userAnswerIdx === idx
-                      const isCorrectChoice = correctIdx === idx
-
-                      let style = 'border-slate-100 bg-slate-50/50 text-slate-500'
-                      let badge = 'bg-slate-200 text-slate-600'
-
-                      if (isCorrectChoice) {
-                        style = 'border-emerald-500 bg-emerald-50 text-emerald-950 font-bold ring-1 ring-emerald-500'
-                        badge = 'bg-emerald-500 text-white'
-                      } else if (isUserChoice && !isCorrectChoice) {
-                        style = 'border-red-300 bg-red-50 text-red-900 line-through decoration-red-400'
-                        badge = 'bg-red-500 text-white'
-                      }
-
-                      return (
-                        <div key={idx} className={`p-3 rounded-xl border flex items-start gap-3 text-sm ${style}`}>
-                          <span className={`w-6 h-6 rounded-md text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold ${badge}`}>
-                            {idx + 1}
-                          </span>
-                          <span className="flex-1 leading-snug">{optText}</span>
-                          {isCorrectChoice && <span className="text-sm font-normal text-emerald-700">✅ คำตอบที่ถูก</span>}
-                          {isUserChoice && !isCorrectChoice && <span className="text-sm font-normal text-red-600">❌ คุณตอบข้อนี้</span>}
-                        </div>
-                      )
-                    })}
+                    <span className="text-[11px] text-slate-400 font-mono shrink-0">
+                      {new Date(item.created_at).toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </span>
                   </div>
 
-                  {/* กล่องเฉลยละเอียด */}
-                  {(q.explanation || q.explanation_image_url) && (
-                    <div className="p-4 bg-amber-50/80 border border-amber-200/80 rounded-xl mb-6">
-                      <div className="font-bold text-amber-900 text-xs flex items-center gap-1.5 mb-1.5">
-                        <span>💡 คำอธิบายเพิ่มเติม:</span>
+                  <div className="p-6 sm:p-8 space-y-6 min-w-0">
+                    {/* บังคับตัดบรรทัดโจทย์ยาว */}
+                    <div className="text-slate-900 font-bold text-base sm:text-lg leading-relaxed break-words [word-break:break-word] min-w-0">
+                      {q.question_text}
+                    </div>
+
+                    {q.image_url && (
+                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex justify-center">
+                        <img src={q.image_url} alt="รูปโจทย์" className="max-h-72 object-contain rounded-xl" loading="lazy" />
                       </div>
-                      {q.explanation && <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap">{q.explanation}</p>}
-                      {q.explanation_image_url && (
-                        <div className="mt-2 bg-white p-2 rounded-lg border border-amber-200 flex justify-center">
-                          <img src={q.explanation_image_url} alt="รูปเฉลย" className="max-h-52 object-contain rounded-lg" loading="lazy" />
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 min-w-0">
+                      <div className="p-4 rounded-2xl bg-red-50/70 border border-red-200 text-red-900 text-xs sm:text-sm min-w-0">
+                        <div className="font-extrabold text-red-700 mb-1 flex items-center gap-1.5">
+                          <span>❌ คำตอบที่คุณเคยเลือก:</span>
                         </div>
-                      )}
+                        <div className="font-medium leading-relaxed break-words [word-break:break-word] min-w-0">
+                          {userAnswerIdx !== null && q.options && q.options[userAnswerIdx]
+                            ? `${userAnswerIdx + 1}. ${q.options[userAnswerIdx]}`
+                            : 'ไม่ได้ตอบ (หมดเวลา / เว้นว่าง)'}
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-300 text-emerald-950 text-xs sm:text-sm shadow-2xs min-w-0">
+                        <div className="font-extrabold text-emerald-800 mb-1 flex items-center gap-1.5">
+                          <span>✅ คำตอบที่ถูกต้อง:</span>
+                        </div>
+                        <div className="font-bold leading-relaxed break-words [word-break:break-word] min-w-0">
+                          {q.options && q.options[correctIdx]
+                            ? `${correctIdx + 1}. ${q.options[correctIdx]}`
+                            : 'ไม่มีข้อมูลเฉลย'}
+                        </div>
+                      </div>
                     </div>
-                  )}
 
-                  {/* ปุ่มกดจำได้แล้ว */}
-                  <div className="pt-3 border-t border-slate-100 flex justify-end">
-                    <button
-                      onClick={() => handleResolve(item.id)}
-                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
-                    >
-                      <span>✅ ทบทวนเข้าใจแล้ว (นำออกจากคลัง)</span>
-                    </button>
+                    {(q.explanation || q.explanation_image_url) && (
+                      <div className="p-5 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-slate-800 min-w-0">
+                        <div className="font-black text-amber-900 text-xs sm:text-sm flex items-center gap-1.5 mb-2">
+                          <span>💡</span><span>คำอธิบายเฉลยเพิ่มเติม:</span>
+                        </div>
+                        {/* บังคับตัดบรรทัดเฉลยยาว */}
+                        {q.explanation && <p className="text-xs sm:text-sm text-slate-700 leading-relaxed break-words [word-break:break-word] min-w-0">{q.explanation}</p>}
+                        {q.explanation_image_url && (
+                          <div className="mt-3 bg-white p-3 rounded-xl border border-amber-200/80 flex justify-center">
+                            <img src={q.explanation_image_url} alt="รูปเฉลย" className="max-h-64 object-contain rounded-lg" loading="lazy" />
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="pt-4 border-t border-slate-100 flex justify-end">
+                      <button
+                        onClick={() => setModalTarget(item)}
+                        className="px-6 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-sm hover:shadow cursor-pointer flex items-center gap-2 group shrink-0"
+                      >
+                        <span>✓</span>
+                        <span>ทบทวนเข้าใจแล้ว (นำออกจากคลัง)</span>
+                      </button>
+                    </div>
+
                   </div>
-
                 </div>
               )
             })}
           </div>
         )}
+
       </div>
     </div>
   )

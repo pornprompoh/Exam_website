@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 
 export default function Login() {
-  const [isSignUp, setIsSignUp] = useState(false) // สลับไประหว่าง เข้าสู่ระบบ / สมัครสมาชิก
+  const [isSignUp, setIsSignUp] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -11,21 +11,19 @@ export default function Login() {
 
   async function handleAuth(e) {
     e.preventDefault()
-    if (!email || !password) return alert('กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วน')
+    if (!email || !password) return alert('กรุณากรอกข้อมูลให้ครบถ้วน')
 
     setLoading(true)
     try {
       if (isSignUp) {
-        // สมัครสมาชิกใหม่
         const { error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
         alert('🎉 สมัครสมาชิกสำเร็จ! ระบบได้เข้าสู่ระบบให้คุณเรียบร้อยแล้ว')
       } else {
-        // เข้าสู่ระบบ
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
       }
-      navigate('/') // เข้าสู่ระบบสำเร็จ ดีดไปหน้าแรก
+      navigate('/')
     } catch (err) {
       alert('เกิดข้อผิดพลาด: ' + err.message)
     } finally {
@@ -34,66 +32,86 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6 font-sans">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-lg border border-slate-200 p-8">
-        
-        <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl font-bold mx-auto mb-3 shadow-inner">
-            ⚡
+    <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans relative overflow-hidden">
+      
+      {/* ลายกราฟิกพื้นหลังสไตล์องค์กร */}
+      <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md z-10">
+        <div className="flex justify-center">
+          <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center text-white text-3xl font-black shadow-xl shadow-red-500/20">
+            💡
           </div>
-          <h1 className="text-2xl font-black text-slate-800">
-            {isSignUp ? 'สร้างบัญชีผู้ใช้ใหม่' : 'ยินดีต้อนรับกลับมา'}
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            {isSignUp ? 'สมัครสมาชิกเพื่อเริ่มทำข้อสอบและเก็บคลังข้อผิด' : 'เข้าสู่ระบบเพื่อเข้าสู่คลังข้อสอบออนไลน์'}
-          </p>
         </div>
-
-        <form onSubmit={handleAuth} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1.5">อีเมล (Email)</label>
-            <input
-              type="email"
-              required
-              placeholder="name@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1.5">รหัสผ่าน (Password)</label>
-            <input
-              type="password"
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white font-bold rounded-xl text-sm transition-colors shadow-md cursor-pointer mt-2"
-          >
-            {loading ? '⏳ กำลังประมวลผล...' : (isSignUp ? '✨ สมัครสมาชิก' : '🚀 เข้าสู่ระบบ')}
-          </button>
-        </form>
-
-        <div className="mt-6 text-center text-xs">
-          <button
-            type="button"
-            onClick={() => setIsSignUp(!isSignUp)}
-            className="text-indigo-600 font-semibold hover:underline cursor-pointer"
-          >
-            {isSignUp ? 'มีบัญชีอยู่แล้ว? เข้าสู่ระบบที่นี่' : 'ยังไม่มีบัญชี? สมัครสมาชิกใหม่'}
-          </button>
-        </div>
-
+        <h2 className="mt-6 text-center text-2xl sm:text-3xl font-black tracking-tight text-white">
+          EXAM<span className="text-red-500">BANK</span> PORTAL
+        </h2>
+        <p className="mt-2 text-center text-xs sm:text-sm font-medium text-slate-400">
+          {isSignUp ? 'สร้างบัญชีผู้ใช้ใหม่ของคุณ' : 'เข้าสู่ระบบเพื่อจัดการข้อสอบหรือเริ่มทำแบบทดสอบ'}
+        </p>
       </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md z-10 px-4 sm:px-0">
+        <div className="bg-white py-8 px-6 shadow-2xl rounded-3xl sm:px-10 border border-slate-100">
+          
+          <form className="space-y-5" onSubmit={handleAuth}>
+            <div>
+              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1.5">
+                อีเมล หรือ ชื่อผู้ใช้ (Email / Username)
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="ชื่อผู้ใช้หรืออีเมลของคุณ"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="appearance-none block w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 text-sm font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-extrabold text-slate-700 uppercase tracking-wider mb-1.5">
+                รหัสผ่าน (Password)
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="appearance-none block w-full px-4 py-3.5 border border-slate-200 rounded-2xl bg-slate-50 text-slate-900 text-sm font-semibold placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
+              />
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex justify-center py-3.5 px-4 border border-transparent rounded-2xl shadow-sm text-sm font-bold text-white bg-slate-900 hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                {loading ? '⏳ กำลังประมวลผล...' : (isSignUp ? '✨ สมัครสมาชิกใหม่' : '🚀 เข้าสู่ระบบทันที')}
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-6 pt-6 border-t border-slate-100 text-center">
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-xs sm:text-sm font-bold text-indigo-600 hover:text-indigo-500 transition-colors cursor-pointer"
+            >
+              {isSignUp ? 'มีบัญชีอยู่แล้ว? คลิกเพื่อเข้าสู่ระบบ' : 'ยังไม่มีบัญชี? สมัครสมาชิกใหม่ที่นี่'}
+            </button>
+          </div>
+
+        </div>
+        
+        <p className="mt-6 text-center text-[11px] text-slate-500 font-mono">
+          SECURE ASSESSMENT PLATFORM &bull; ENTERPRISE EDITION
+        </p>
+      </div>
+
     </div>
   )
 }
