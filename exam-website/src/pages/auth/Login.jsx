@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import ConfirmModal from '../../components/common/ConfirmModal'
 
 export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false)
@@ -9,23 +10,63 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
+  // 🌟 State สำหรับ Modal แจ้งเตือนสไตล์ Modern Card (แทน alert เดิม)
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    type: 'info',
+    title: '',
+    description: '',
+    onConfirmAction: null
+  })
+
+  const showModal = (type, title, description, onConfirmAction = null) => {
+    setModalConfig({ isOpen: true, type, title, description, onConfirmAction })
+  }
+
+  const closeModal = () => {
+    if (modalConfig.onConfirmAction) {
+      modalConfig.onConfirmAction()
+    }
+    setModalConfig((prev) => ({ ...prev, isOpen: false }))
+  }
+
   async function handleAuth(e) {
     e.preventDefault()
-    if (!email || !password) return alert('กรุณากรอกข้อมูลให้ครบถ้วน')
+    if (!email || !password) {
+      return showModal('warning', 'ข้อมูลไม่ครบถ้วน', 'กรุณากรอกอีเมลและรหัสผ่านให้ครบถ้วนก่อนเข้าสู่ระบบครับ')
+    }
 
     setLoading(true)
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password })
+        const { data, error } = await supabase.auth.signUp({ email, password })
         if (error) throw error
-        alert('🎉 สมัครสมาชิกสำเร็จ! ระบบได้เข้าสู่ระบบให้คุณเรียบร้อยแล้ว')
+
+        // 🌟 เซฟตี้การ์ดฝั่งเว็บ: ตรวจสอบและสร้างโปรไฟล์เฉพาะคนสมัครใหม่ โดยไม่ทับสิทธิ์เดิม
+        if (data.user) {
+          const { data: existing } = await supabase.from('profiles').select('id').eq('id', data.user.id).single()
+          if (!existing) {
+            await supabase.from('profiles').insert([{
+              id: data.user.id,
+              email: email,
+              role: 'student',
+              display_name: email.split('@')[0]
+            }])
+          }
+        }
+
+        showModal('success', '🎉 สมัครสมาชิกสำเร็จ!', 'ระบบได้สร้างบัญชีและพาคุณเข้าสู่ระบบเรียบร้อยแล้วครับ', () => {
+          navigate('/')
+        })
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) throw error
+        
+        // 🌟 ปลอดภัย 100%: ตอนล็อกอินระบบจะไม่ไปแตะต้องหรือเขียนทับตาราง profiles เด็ดขาด!
+        navigate('/')
       }
-      navigate('/')
     } catch (err) {
-      alert('เกิดข้อผิดพลาด: ' + err.message)
+      showModal('danger', 'เกิดข้อผิดพลาด', err.message)
     } finally {
       setLoading(false)
     }
@@ -34,6 +75,18 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8 font-sans relative overflow-hidden">
       
+      {/* 🌟 เรียกใช้ ConfirmModal แทนหน้าต่างแจ้งเตือนสีดำของเบราว์เซอร์ */}
+      <ConfirmModal
+        isOpen={modalConfig.isOpen}
+        type={modalConfig.type}
+        title={modalConfig.title}
+        description={modalConfig.description}
+        confirmText="✨ ตกลง / รับทราบ"
+        cancelText=""
+        onConfirm={closeModal}
+        onClose={closeModal}
+      />
+
       {/* ลายกราฟิกพื้นหลังสไตล์องค์กร */}
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />

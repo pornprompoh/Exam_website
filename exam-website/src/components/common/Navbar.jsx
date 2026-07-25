@@ -10,24 +10,28 @@ export default function Navbar({
   theme = 'student' // 'student' | 'admin'
 }) {
   const [userRole, setUserRole] = useState('student')
+  const [displayName, setDisplayName] = useState('')
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
 
   useEffect(() => {
-    async function checkUserRole() {
+    async function checkUserData() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) {
         const { data } = await supabase
           .from('profiles')
-          .select('role')
+          .select('role, display_name')
           .eq('id', session.user.id)
           .single()
-        if (data) setUserRole(data.role)
+        if (data) {
+          setUserRole(data.role || 'student')
+          setDisplayName(data.display_name || session.user.email?.split('@')[0] || '')
+        }
       }
     }
-    checkUserRole()
-  }, [])
+    checkUserData()
+  }, [location.pathname])
 
   async function handleConfirmLogout() {
     await supabase.auth.signOut()
@@ -37,7 +41,11 @@ export default function Navbar({
   const isHome = location.pathname === '/'
   const isMistakes = location.pathname === '/mistakes'
   const isAnalytics = location.pathname === '/analytics'
+  const isProfile = location.pathname === '/profile'
   const isAdmin = theme === 'admin'
+
+  // ตรวจสอบว่าเป็นแอดมินหรือผู้ช่วยสร้างข้อสอบหรือไม่
+  const canAccessBackend = userRole === 'admin' || userRole === 'creator'
 
   return (
     <>
@@ -79,7 +87,6 @@ export default function Navbar({
             </div>
           )}
 
-          {/* เมนูตรงกลาง (เพิ่มแท็บ สถิติการสอบ) */}
           {showNavPills && !isAdmin && (
             <nav className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0">
               <Link 
@@ -109,31 +116,59 @@ export default function Navbar({
             </nav>
           )}
 
-          <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm font-semibold shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2.5 text-xs sm:text-sm font-semibold shrink-0">
             {customRightContent ? customRightContent : (
               <>
-                {!isAdmin && userRole === 'admin' && (
+                {/* 🌟 ปรับปรุงปุ่มเข้าหลังบ้าน: แสดงทั้งสิทธิ์ admin และ creator */}
+                {!isAdmin && canAccessBackend && (
                   <Link
                     to="/admin"
-                    className="px-2.5 sm:px-3.5 py-1.5 bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1 shrink-0"
+                    className={`px-2.5 sm:px-3 py-1.5 font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1 shrink-0 ${
+                      userRole === 'admin'
+                        ? 'bg-amber-400 hover:bg-amber-500 text-slate-950'
+                        : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-indigo-500/20'
+                    }`}
+                    title={userRole === 'admin' ? "ศูนย์ควบคุมแอดมิน" : "พื้นที่ทำงานผู้ช่วยสร้างข้อสอบ"}
                   >
-                    <span>⚡</span><span className="hidden sm:inline">แอดมิน</span>
+                    <span>{userRole === 'admin' ? '⚡' : '✏️'}</span>
+                    <span className="hidden sm:inline">{userRole === 'admin' ? 'แอดมิน' : 'สร้างข้อสอบ'}</span>
                   </Link>
                 )}
+
                 {isAdmin && (
                   <Link
                     to="/"
-                    className="px-2.5 sm:px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 shrink-0"
+                    className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 shrink-0"
                   >
                     <span>🏠</span><span className="hidden sm:inline">หน้านักเรียน</span>
                   </Link>
                 )}
-                <div className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-3.5 py-1.5 rounded-xl border text-xs shrink-0 ${
+
+                {/* ปุ่มเข้าหน้าโปรไฟล์ */}
+                <Link
+                  to="/profile"
+                  className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border font-bold text-xs transition-all flex items-center gap-1.5 shrink-0 ${
+                    isProfile
+                      ? (isAdmin ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-teal-600 text-white border-teal-500')
+                      : (isAdmin ? 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-slate-100/80 border-slate-200/60 text-slate-700 hover:bg-slate-200/80')
+                  }`}
+                  title="ตั้งค่าโปรไฟล์และรหัสผ่าน"
+                >
+                  <span>⚙️</span>
+                  <span className="hidden lg:inline max-w-[80px] truncate">{displayName || 'ตั้งค่าบัญชี'}</span>
+                </Link>
+
+                {/* 🌟 ป้ายสถานะสิทธิ์ด้านขวามือ ปรับให้รองรับ Creator ชัดเจน */}
+                <div className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs shrink-0 ${
                   isAdmin ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-100/80 border-slate-200/60 text-slate-600'
                 }`}>
                   <span className="font-medium flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full inline-block shrink-0 animate-pulse ${isAdmin ? 'bg-amber-400' : 'bg-emerald-500'}`}></span>
-                    <span className="hidden sm:inline">{isAdmin ? 'Admin' : 'ผู้เข้าสอบ'}</span>
+                    <span className={`w-2 h-2 rounded-full inline-block shrink-0 animate-pulse ${
+                      userRole === 'admin' ? 'bg-amber-400' : userRole === 'creator' ? 'bg-indigo-500' : 'bg-emerald-500'
+                    }`}></span>
+                    <span className="hidden sm:inline">
+                      {userRole === 'admin' ? 'Admin' : userRole === 'creator' ? 'Creator' : 'ผู้เข้าสอบ'}
+                    </span>
                   </span>
                   <span className={isAdmin ? 'text-slate-600' : 'text-slate-300'}>|</span>
                   <button
@@ -149,7 +184,6 @@ export default function Navbar({
 
         </div>
 
-        {/* แถบเมนูสำหรับจอมือถือ (เพิ่มปุ่มสถิติการสอบ) */}
         {showNavPills && !isAdmin && (
           <div className="md:hidden px-2 pb-2.5 pt-1 border-t border-slate-100 bg-slate-50/50 flex gap-1">
             <Link

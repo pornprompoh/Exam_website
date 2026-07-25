@@ -109,9 +109,9 @@ export default function MistakeBank() {
 
       <Navbar showNavPills={true} />
 
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-12 sm:py-16 border-b border-slate-700 shadow-inner">
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white mb-3">
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-10 sm:py-16 border-b border-slate-700 shadow-inner">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white mb-2 sm:mb-3">
             คลังข้อผิดพลาด และสมุดทบทวน 💡
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
@@ -120,18 +120,18 @@ export default function MistakeBank() {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-6 mt-8 min-w-0">
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-wrap items-center justify-between gap-4 mb-8 min-w-0">
-          <div className="flex items-center gap-2.5">
-            <span className="text-lg">🔍</span>
-            <span className="font-extrabold text-slate-800 text-sm">กรองตามหมวดวิชา:</span>
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 mt-6 sm:mt-8 min-w-0">
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 min-w-0">
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <span className="text-base sm:text-lg">🔍</span>
+            <span className="font-extrabold text-slate-800 text-xs sm:text-sm">กรองตามหมวดวิชา:</span>
           </div>
           
-          <div className="w-full sm:w-auto sm:max-w-xs min-w-[220px]">
+          <div className="w-full sm:w-auto sm:max-w-xs min-w-0">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-200 text-slate-700 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all cursor-pointer"
+              className="w-full px-3.5 py-2 sm:py-2.5 bg-slate-50 hover:bg-slate-100/80 rounded-xl border border-slate-200 text-slate-700 text-xs sm:text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-teal-500 transition-all cursor-pointer truncate pr-8"
             >
               <option value="ALL">💡 แสดงทั้งหมด ({mistakes.length} ข้อ)</option>
               {categories.map((cat) => (
@@ -152,7 +152,7 @@ export default function MistakeBank() {
             onAction={() => window.location.href = '/'}
           />
         ) : (
-          <div className="space-y-6 min-w-0">
+          <div className="space-y-5 sm:space-y-6 min-w-0">
             {filteredMistakes.map((item, idx) => {
               const q = item.questions
               const userAnswerIdx = item.user_answer !== null ? Number(item.user_answer) : null
@@ -163,73 +163,95 @@ export default function MistakeBank() {
                   key={item.id} 
                   className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden hover:shadow-md transition-all min-w-0"
                 >
-                  <div className="bg-slate-100/80 px-6 py-3.5 border-b border-slate-200/60 flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-slate-600 min-w-0">
-                    <div className="flex items-center gap-2 min-w-0">
+                  <div className="bg-slate-100/80 px-4 sm:px-6 py-3 border-b border-slate-200/60 flex flex-wrap items-center justify-between gap-1.5 text-xs font-bold text-slate-600 min-w-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
                       <span className="w-2 h-2 rounded-full bg-red-500 inline-block shrink-0"/>
                       <span className="text-slate-900 font-extrabold truncate">📖 {q.categories?.name || 'หมวดวิชาทั่วไป'}</span>
                       <span className="text-slate-300 shrink-0">|</span>
-                      <span className="shrink-0">รายการที่ #{idx + 1}</span>
+                      <span className="shrink-0">#{idx + 1}</span>
                     </div>
-                    <span className="text-[11px] text-slate-400 font-mono shrink-0">
-                      {new Date(item.created_at).toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono shrink-0">
+                      {new Date(item.created_at).toLocaleDateString('th-TH', { year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} น.
                     </span>
                   </div>
 
-                  <div className="p-6 sm:p-8 space-y-6 min-w-0">
-                    {/* บังคับตัดบรรทัดโจทย์ยาว */}
-                    <div className="text-slate-900 font-bold text-base sm:text-lg leading-relaxed break-words [word-break:break-word] min-w-0">
+                  <div className="p-4 sm:p-8 space-y-5 sm:space-y-6 min-w-0">
+                    
+                    <div className="text-slate-900 font-bold text-sm sm:text-lg leading-relaxed break-words [word-break:break-word] min-w-0">
                       {q.question_text}
                     </div>
 
                     {q.image_url && (
-                      <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 flex justify-center">
-                        <img src={q.image_url} alt="รูปโจทย์" className="max-h-72 object-contain rounded-xl" loading="lazy" />
+                      <div className="bg-slate-50 p-2 sm:p-3 rounded-2xl border border-slate-200 flex justify-center overflow-hidden">
+                        <img src={q.image_url} alt="รูปโจทย์" className="max-w-full max-h-72 object-contain rounded-xl" loading="lazy" />
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 min-w-0">
-                      <div className="p-4 rounded-2xl bg-red-50/70 border border-red-200 text-red-900 text-xs sm:text-sm min-w-0">
-                        <div className="font-extrabold text-red-700 mb-1 flex items-center gap-1.5">
-                          <span>❌ คำตอบที่คุณเคยเลือก:</span>
-                        </div>
-                        <div className="font-medium leading-relaxed break-words [word-break:break-word] min-w-0">
-                          {userAnswerIdx !== null && q.options && q.options[userAnswerIdx]
-                            ? `${userAnswerIdx + 1}. ${q.options[userAnswerIdx]}`
-                            : 'ไม่ได้ตอบ (หมดเวลา / เว้นว่าง)'}
-                        </div>
+                    <div className="space-y-2.5 min-w-0 pt-1">
+                      <div className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
+                        ตัวเลือกทั้งหมด และจุดที่คุณต้องทบทวน:
                       </div>
 
-                      <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-300 text-emerald-950 text-xs sm:text-sm shadow-2xs min-w-0">
-                        <div className="font-extrabold text-emerald-800 mb-1 flex items-center gap-1.5">
-                          <span>✅ คำตอบที่ถูกต้อง:</span>
+                      {q.options?.map((optText, optIdx) => {
+                        const isUserChoice = userAnswerIdx === optIdx
+                        const isCorrectChoice = correctIdx === optIdx
+
+                        let cardStyle = "bg-slate-50/60 border-slate-200/80 text-slate-600"
+                        let badgeStyle = "bg-slate-200 text-slate-700"
+                        let statusBadge = null
+
+                        if (isCorrectChoice) {
+                          cardStyle = "bg-emerald-50/80 border-emerald-500 text-emerald-950 font-bold ring-1 ring-emerald-500 shadow-2xs"
+                          badgeStyle = "bg-emerald-500 text-white font-black"
+                          statusBadge = <span className="bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md ml-auto shrink-0 shadow-xs">🎯 คำตอบที่ถูกต้อง</span>
+                        } else if (isUserChoice) {
+                          // 🌟 เอาเส้นขีดฆ่าทิ้ง เหลือแค่พื้นหลังสีแดงตัวหนา อ่านสบายตา!
+                          cardStyle = "bg-red-50/80 border-red-300 text-red-900 font-semibold shadow-2xs"
+                          badgeStyle = "bg-red-500 text-white font-black"
+                          statusBadge = <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md ml-auto shrink-0 shadow-xs">❌ คุณเคยตอบข้อนี้</span>
+                        }
+
+                        return (
+                          <div 
+                            key={optIdx} 
+                            className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex items-center gap-3 min-w-0 ${cardStyle}`}
+                          >
+                            <span className={`w-6 h-6 sm:w-7 sm:h-7 rounded-xl text-xs flex items-center justify-center shrink-0 font-mono ${badgeStyle}`}>
+                              {optIdx + 1}
+                            </span>
+                            <span className="text-xs sm:text-sm leading-relaxed break-words [word-break:break-word] flex-1 min-w-0">
+                              {optText}
+                            </span>
+                            {statusBadge}
+                          </div>
+                        )
+                      })}
+
+                      {userAnswerIdx === null && (
+                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-bold text-amber-800 flex items-center gap-2">
+                          <span>⚠️</span><span>ข้อนี้คุณไม่ได้เลือกคำตอบ (อาจจะหมดเวลา หรือเว้นว่างไว้)</span>
                         </div>
-                        <div className="font-bold leading-relaxed break-words [word-break:break-word] min-w-0">
-                          {q.options && q.options[correctIdx]
-                            ? `${correctIdx + 1}. ${q.options[correctIdx]}`
-                            : 'ไม่มีข้อมูลเฉลย'}
-                        </div>
-                      </div>
+                      )}
                     </div>
 
                     {(q.explanation || q.explanation_image_url) && (
-                      <div className="p-5 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-slate-800 min-w-0">
+                      <div className="p-4 sm:p-5 bg-amber-50/80 border border-amber-200/80 rounded-2xl text-slate-800 min-w-0 mt-4">
                         <div className="font-black text-amber-900 text-xs sm:text-sm flex items-center gap-1.5 mb-2">
                           <span>💡</span><span>คำอธิบายเฉลยเพิ่มเติม:</span>
                         </div>
-                        {/* บังคับตัดบรรทัดเฉลยยาว */}
                         {q.explanation && <p className="text-xs sm:text-sm text-slate-700 leading-relaxed break-words [word-break:break-word] min-w-0">{q.explanation}</p>}
                         {q.explanation_image_url && (
-                          <div className="mt-3 bg-white p-3 rounded-xl border border-amber-200/80 flex justify-center">
-                            <img src={q.explanation_image_url} alt="รูปเฉลย" className="max-h-64 object-contain rounded-lg" loading="lazy" />
+                          <div className="mt-3 bg-white p-2 sm:p-3 rounded-xl border border-amber-200/80 flex justify-center overflow-hidden">
+                            <img src={q.explanation_image_url} alt="รูปเฉลย" className="max-w-full max-h-64 object-contain rounded-lg" loading="lazy" />
                           </div>
                         )}
                       </div>
                     )}
 
-                    <div className="pt-4 border-t border-slate-100 flex justify-end">
+                    <div className="pt-3 sm:pt-4 border-t border-slate-100 flex justify-end">
                       <button
                         onClick={() => setModalTarget(item)}
-                        className="px-6 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-sm hover:shadow cursor-pointer flex items-center gap-2 group shrink-0"
+                        className="w-full sm:w-auto px-5 sm:px-6 py-2.5 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-sm hover:shadow cursor-pointer flex items-center justify-center gap-2 group shrink-0"
                       >
                         <span>✓</span>
                         <span>ทบทวนเข้าใจแล้ว (นำออกจากคลัง)</span>

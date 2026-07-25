@@ -19,7 +19,6 @@ export default function ExamSession() {
   const [score, setScore] = useState(0)
   const [saving, setSaving] = useState(false)
   
-  // State สำหรับ Modal ต่างๆ
   const [showExitModal, setShowExitModal] = useState(false)
   const [showIncompleteModal, setShowIncompleteModal] = useState(false)
   const [showTimeOutModal, setShowTimeOutModal] = useState(false)
@@ -129,7 +128,12 @@ export default function ExamSession() {
 
     const prepared = selectedSlice.map((q) => {
       if (!q.is_options_randomized || !q.options) {
-        return { ...q, displayOptions: q.options, displayCorrectOption: Number(q.correct_option) }
+        return { 
+          ...q, 
+          displayOptions: q.options, 
+          displayCorrectOption: Number(q.correct_option),
+          originalOptionIndices: [0, 1, 2, 3]
+        }
       }
       const optionsWithOriginalIdx = q.options.map((opt, idx) => ({ text: opt, originalIdx: idx }))
       optionsWithOriginalIdx.sort(() => Math.random() - 0.5)
@@ -138,7 +142,8 @@ export default function ExamSession() {
       return {
         ...q,
         displayOptions: optionsWithOriginalIdx.map((item) => item.text),
-        displayCorrectOption: newCorrectIdx
+        displayCorrectOption: newCorrectIdx,
+        originalOptionIndices: optionsWithOriginalIdx.map((item) => item.originalIdx)
       }
     })
 
@@ -173,7 +178,6 @@ export default function ExamSession() {
     }
   }
 
-  // อัปเกรด: ตัดคำถามยืนยันออก! ถ้าทำครบแล้วกดส่ง ประมวลผลและโชว์คะแนนทันที (One-Click Submit)
   async function handleSubmitExam(isTimeOut = false) {
     const answeredCount = Object.keys(userAnswers).length
 
@@ -181,7 +185,6 @@ export default function ExamSession() {
       if (answeredCount < questions.length) {
         return setShowIncompleteModal(true)
       }
-      // ลบ window.confirm ออก ส่งข้อสอบทันทีเมื่อกดปุ่ม!
     } else {
       setShowTimeOutModal(true)
     }
@@ -191,15 +194,19 @@ export default function ExamSession() {
     const mistakeItems = []
 
     questions.forEach((q) => {
-      const selectedIdx = userAnswers[q.id]
-      const isCorrect = selectedIdx !== undefined && selectedIdx === q.displayCorrectOption
+      const selectedDisplayIdx = userAnswers[q.id]
+      const isCorrect = selectedDisplayIdx !== undefined && selectedDisplayIdx === q.displayCorrectOption
 
       if (isCorrect) {
         totalScore += 1
       } else {
+        const originalUserAnswerIdx = selectedDisplayIdx !== undefined 
+          ? q.originalOptionIndices[selectedDisplayIdx] 
+          : null
+
         mistakeItems.push({
           question_id: q.id,
-          user_answer: selectedIdx !== undefined ? String(selectedIdx) : null,
+          user_answer: originalUserAnswerIdx !== null ? String(originalUserAnswerIdx) : null,
           is_resolved: false
         })
       }
@@ -418,7 +425,6 @@ export default function ExamSession() {
   return (
     <div className="min-h-screen bg-slate-50/70 pb-24 font-sans text-slate-800 relative overflow-x-hidden">
       
-      {/* Modals ทั้งหมดใช้ ConfirmModal กลาง 100% */}
       <ConfirmModal
         isOpen={showExitModal}
         type="danger"
@@ -557,7 +563,8 @@ export default function ExamSession() {
                     cardStyle = 'border-emerald-500 bg-emerald-50/70 text-emerald-950 font-bold shadow-xs ring-1 ring-emerald-500'
                     badgeStyle = 'bg-emerald-500 text-white font-bold border-emerald-500'
                   } else if (isSelected && !isCorrectOption) {
-                    cardStyle = 'border-red-300 bg-red-50/70 text-red-900 line-through decoration-red-400'
+                    // 🌟 ตัดเส้นขีดฆ่าทิ้ง เหลือแค่สีแดงตัวหนา คลีนอ่านง่าย!
+                    cardStyle = 'border-red-300 bg-red-50/70 text-red-900 font-semibold'
                     badgeStyle = 'bg-red-500 text-white font-bold border-red-500'
                   } else {
                     cardStyle = 'border-slate-150 bg-slate-50/40 text-slate-400 opacity-60'
