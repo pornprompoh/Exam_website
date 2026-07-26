@@ -1,29 +1,36 @@
-import React from 'react'
-
 export default function EmptyState({ 
-  icon = '🔍', 
-  title = 'ไม่พบข้อมูลครับ', 
-  description = 'ลองตรวจสอบเงื่อนไขการค้นหาอีกครั้ง หรือลองรีเซ็ตตัวกรองใหม่นะครับ',
-  actionText = null,
-  onAction = null 
+  icon = "📁", 
+  title = "ไม่มีข้อมูล", 
+  description = "ยังไม่พบข้อมูลในรายการนี้ครับ", 
+  theme = "light" // 🌟 เพิ่ม prop รองรับ 'light' หรือ 'dark'
 }) {
+  const isDark = theme === 'dark'
+
   return (
-    <div className="bg-white rounded-3xl p-12 text-center border border-slate-200/80 shadow-sm max-w-md mx-auto my-8 animate-fadeIn">
-      <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-inner">
+    <div className={`rounded-3xl p-8 sm:p-12 text-center border transition-all duration-300 max-w-lg mx-auto my-6 animate-fadeIn ${
+      isDark 
+        ? 'bg-slate-900 border-slate-800 text-white shadow-2xl shadow-indigo-500/5' 
+        : 'bg-white border-slate-200/80 text-slate-800 shadow-sm'
+    }`}>
+      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border transition-transform hover:scale-110 ${
+        isDark 
+          ? 'bg-slate-950 border-slate-800 text-indigo-400 shadow-inner' 
+          : 'bg-slate-50 border-slate-100 text-indigo-600 shadow-inner'
+      }`}>
         {icon}
       </div>
-      <p className="font-bold text-slate-800 text-base">{title}</p>
-      <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">{description}</p>
       
-      {actionText && onAction && (
-        <button
-          onClick={onAction}
-          className="mt-6 px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm hover:shadow cursor-pointer inline-flex items-center gap-1.5"
-        >
-          <span>🔄</span>
-          <span>{actionText}</span>
-        </button>
-      )}
+      <h3 className={`text-lg font-black mb-2 tracking-tight ${
+        isDark ? 'text-white' : 'text-slate-900'
+      }`}>
+        {title}
+      </h3>
+      
+      <p className={`text-xs sm:text-sm leading-relaxed ${
+        isDark ? 'text-slate-400' : 'text-slate-500'
+      }`}>
+        {description}
+      </p>
     </div>
   )
 }

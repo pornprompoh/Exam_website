@@ -1,1 +1,30 @@
 @import "tailwindcss";
+
+/* 🌟 1. ป้องกันจอขยับเวลาเปลี่ยนหน้า */
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+}
+
+/* 🌟 2. ตกแต่งแถบเลื่อนให้สวยหรู (Custom Scrollbar) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+/* พื้นหลังรางเลื่อน */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* ตัวแถบเลื่อน */
+::-webkit-scrollbar-thumb {
+  background: #475569; /* สีเทา slate-600 */
+  border-radius: 9999px;
+}
+
+/* เวลาเอาเมาส์ไปชี้ที่แถบเลื่อน */
+::-webkit-scrollbar-thumb:hover {
+  background: #6366f1; /* เปลี่ยนเป็นสีม่วง indigo-500 */
+}

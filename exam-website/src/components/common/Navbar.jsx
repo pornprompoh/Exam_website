@@ -1,218 +1,271 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
-import ConfirmModal from './ConfirmModal'
 
-export default function Navbar({ 
-  customLeftContent = null, 
-  customRightContent = null,
-  showNavPills = true,
-  theme = 'student' // 'student' | 'admin'
-}) {
-  const [userRole, setUserRole] = useState('student')
-  const [displayName, setDisplayName] = useState('')
-  const [showLogoutModal, setShowLogoutModal] = useState(false)
-  const navigate = useNavigate()
+export default function Navbar() {
   const location = useLocation()
+  const navigate = useNavigate()
+  
+  const [user, setUser] = useState(null)
+  const [role, setRole] = useState('student')
+  const [loading, setLoading] = useState(true)
+  
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
-    async function checkUserData() {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('role, display_name')
-          .eq('id', session.user.id)
-          .single()
-        if (data) {
-          setUserRole(data.role || 'student')
-          setDisplayName(data.display_name || session.user.email?.split('@')[0] || '')
+    async function initUser() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          setUser(session.user)
+          
+          const { data } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single()
+            
+          if (data?.role) setRole(data.role)
         }
+      } catch (err) {
+        console.error('Error fetching user for navbar:', err)
+      } finally {
+        setLoading(false)
       }
     }
-    checkUserData()
-  }, [location.pathname])
+    initUser()
+  }, [])
 
-  async function handleConfirmLogout() {
-    await supabase.auth.signOut()
-    navigate('/login')
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut()
+      navigate('/login')
+    } catch (err) {
+      alert('ออกจากระบบไม่สำเร็จ: ' + err.message)
+    }
   }
 
-  const isHome = location.pathname === '/'
-  const isMistakes = location.pathname === '/mistakes'
-  const isAnalytics = location.pathname === '/analytics'
-  const isProfile = location.pathname === '/profile'
-  const isAdmin = theme === 'admin'
+  useEffect(() => {
+    setIsProfileOpen(false)
+    setIsMobileMenuOpen(false)
+  }, [location.pathname])
 
-  // ตรวจสอบว่าเป็นแอดมินหรือผู้ช่วยสร้างข้อสอบหรือไม่
-  const canAccessBackend = userRole === 'admin' || userRole === 'creator'
+  const isActive = (path) => location.pathname === path
+
+  const getDisplayName = () => {
+    if (!user) return 'ผู้เข้าใช้งาน'
+    return user.user_metadata?.display_name || user.email?.split('@')[0] || 'Member'
+  }
+
+  const getRoleBadge = () => {
+    if (role === 'admin') return { text: 'Admin', style: 'bg-amber-500 text-slate-950 font-black' }
+    if (role === 'creator') return { text: 'Creator', style: 'bg-indigo-600 text-white font-bold' }
+    return { text: 'Student', style: 'bg-slate-200 text-slate-700 font-bold' }
+  }
+
+  const roleInfo = getRoleBadge()
 
   return (
     <>
-      <ConfirmModal
-        isOpen={showLogoutModal}
-        type="danger"
-        title="ต้องการออกจากระบบใช่หรือไม่?"
-        description="เซสชันการใช้งานของคุณจะถูกยกเลิก และระบบจะพาคุณกลับไปยังหน้าเข้าสู่ระบบครับ"
-        confirmText="🚪 ออกจากระบบทันที"
-        cancelText="← อยู่ในระบบต่อ"
-        onClose={() => setShowLogoutModal(false)}
-        onConfirm={handleConfirmLogout}
-      />
-
-      <header className={`border-b sticky top-0 z-30 transition-colors overflow-x-hidden ${
-        isAdmin ? 'bg-slate-900 border-slate-800 text-white shadow-md' : 'bg-white border-slate-200/80 text-slate-800 shadow-xs'
-      }`}>
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/80 transition-all">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           
-          {customLeftContent ? (
-            <div className="flex-1 min-w-0 mr-2">
-              {customLeftContent}
+          <Link to="/" className="flex items-center gap-2.5 shrink-0 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white flex items-center justify-center text-lg shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+              💡
             </div>
-          ) : (
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
-              <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white text-lg sm:text-xl font-black shadow-md shrink-0 ${
-                isAdmin ? 'bg-gradient-to-br from-amber-500 to-amber-600 shadow-amber-500/20' : 'bg-gradient-to-br from-red-500 to-red-600 shadow-red-500/20'
-              }`}>
-                {isAdmin ? '⚡' : '💡'}
-              </div>
-              <div className="min-w-0">
-                <span className={`font-black text-lg sm:text-xl tracking-tight block truncate ${isAdmin ? 'text-white' : 'text-slate-900'}`}>
-                  EXAM<span className={isAdmin ? 'text-amber-400' : 'text-red-600'}>BANK</span>
-                </span>
-                <span className={`block text-[9px] sm:text-[10px] font-bold -mt-1 tracking-wider uppercase truncate ${isAdmin ? 'text-amber-400/80' : 'text-slate-400'}`}>
-                  {isAdmin ? 'Admin Panel' : 'Online Assessment'}
-                </span>
-              </div>
+            <div className="flex flex-col">
+              <span className="text-base font-black tracking-tight text-slate-900 leading-none">
+                EXAM<span className="text-indigo-600">BANK</span>
+              </span>
+              <span className="text-[9px] font-extrabold tracking-widest text-slate-400 uppercase mt-0.5">
+                ONLINE PORTAL
+              </span>
             </div>
-          )}
+          </Link>
 
-          {showNavPills && !isAdmin && (
-            <nav className="hidden md:flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 shrink-0">
-              <Link 
-                to="/" 
-                className={`px-3.5 py-1.5 font-bold text-xs sm:text-sm rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
-                  isHome ? 'bg-white text-red-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <span>📝</span><span>คลังข้อสอบ</span>
-              </Link>
-              <Link 
-                to="/mistakes" 
-                className={`px-3.5 py-1.5 font-bold text-xs sm:text-sm rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
-                  isMistakes ? 'bg-white text-red-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <span>📑</span><span>คลังข้อผิด</span>
-              </Link>
-              <Link 
-                to="/analytics" 
-                className={`px-3.5 py-1.5 font-bold text-xs sm:text-sm rounded-lg flex items-center gap-1.5 transition-all cursor-pointer ${
-                  isAnalytics ? 'bg-white text-red-600 shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                }`}
-              >
-                <span>📊</span><span>สถิติการสอบ</span>
-              </Link>
-            </nav>
-          )}
-
-          <div className="flex items-center gap-1.5 sm:gap-2.5 text-xs sm:text-sm font-semibold shrink-0">
-            {customRightContent ? customRightContent : (
-              <>
-                {/* 🌟 ปรับปรุงปุ่มเข้าหลังบ้าน: แสดงทั้งสิทธิ์ admin และ creator */}
-                {!isAdmin && canAccessBackend && (
-                  <Link
-                    to="/admin"
-                    className={`px-2.5 sm:px-3 py-1.5 font-bold text-xs rounded-xl transition-all shadow-xs flex items-center gap-1 shrink-0 ${
-                      userRole === 'admin'
-                        ? 'bg-amber-400 hover:bg-amber-500 text-slate-950'
-                        : 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white shadow-indigo-500/20'
-                    }`}
-                    title={userRole === 'admin' ? "ศูนย์ควบคุมแอดมิน" : "พื้นที่ทำงานผู้ช่วยสร้างข้อสอบ"}
-                  >
-                    <span>{userRole === 'admin' ? '⚡' : '✏️'}</span>
-                    <span className="hidden sm:inline">{userRole === 'admin' ? 'แอดมิน' : 'สร้างข้อสอบ'}</span>
-                  </Link>
-                )}
-
-                {isAdmin && (
-                  <Link
-                    to="/"
-                    className="px-2.5 sm:px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-xs rounded-xl transition-all flex items-center gap-1 shrink-0"
-                  >
-                    <span>🏠</span><span className="hidden sm:inline">หน้านักเรียน</span>
-                  </Link>
-                )}
-
-                {/* ปุ่มเข้าหน้าโปรไฟล์ */}
-                <Link
-                  to="/profile"
-                  className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border font-bold text-xs transition-all flex items-center gap-1.5 shrink-0 ${
-                    isProfile
-                      ? (isAdmin ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-teal-600 text-white border-teal-500')
-                      : (isAdmin ? 'bg-slate-800/80 border-slate-700 text-slate-300 hover:bg-slate-700' : 'bg-slate-100/80 border-slate-200/60 text-slate-700 hover:bg-slate-200/80')
-                  }`}
-                  title="ตั้งค่าโปรไฟล์และรหัสผ่าน"
-                >
-                  <span>⚙️</span>
-                  <span className="hidden lg:inline max-w-[80px] truncate">{displayName || 'ตั้งค่าบัญชี'}</span>
-                </Link>
-
-                {/* 🌟 ป้ายสถานะสิทธิ์ด้านขวามือ ปรับให้รองรับ Creator ชัดเจน */}
-                <div className={`flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs shrink-0 ${
-                  isAdmin ? 'bg-slate-800/80 border-slate-700 text-slate-300' : 'bg-slate-100/80 border-slate-200/60 text-slate-600'
-                }`}>
-                  <span className="font-medium flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full inline-block shrink-0 animate-pulse ${
-                      userRole === 'admin' ? 'bg-amber-400' : userRole === 'creator' ? 'bg-indigo-500' : 'bg-emerald-500'
-                    }`}></span>
-                    <span className="hidden sm:inline">
-                      {userRole === 'admin' ? 'Admin' : userRole === 'creator' ? 'Creator' : 'ผู้เข้าสอบ'}
-                    </span>
-                  </span>
-                  <span className={isAdmin ? 'text-slate-600' : 'text-slate-300'}>|</span>
-                  <button
-                    onClick={() => setShowLogoutModal(true)}
-                    className="text-red-500 hover:text-red-400 font-bold transition-colors cursor-pointer shrink-0"
-                  >
-                    ออก<span className="hidden sm:inline">จากระบบ</span>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-
-        </div>
-
-        {showNavPills && !isAdmin && (
-          <div className="md:hidden px-2 pb-2.5 pt-1 border-t border-slate-100 bg-slate-50/50 flex gap-1">
+          <div className="hidden md:flex items-center bg-slate-100/80 p-1.5 rounded-2xl border border-slate-200/60 shadow-2xs">
             <Link
               to="/"
-              className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-                isHome ? 'bg-white text-red-600 shadow-2xs border border-slate-200/60' : 'text-slate-600 hover:bg-white/50'
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                isActive('/') 
+                  ? 'bg-white text-indigo-600 shadow-xs font-black' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
               <span>📝</span><span>คลังข้อสอบ</span>
             </Link>
+
             <Link
               to="/mistakes"
-              className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-                isMistakes ? 'bg-white text-red-600 shadow-2xs border border-slate-200/60' : 'text-slate-600 hover:bg-white/50'
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                isActive('/mistakes') 
+                  ? 'bg-white text-red-600 shadow-xs font-black' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
-              <span>📑</span><span>คลังข้อผิด</span>
+              <span>💡</span><span>คลังข้อผิดพลาด</span>
             </Link>
+
             <Link
               to="/analytics"
-              className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-                isAnalytics ? 'bg-white text-red-600 shadow-2xs border border-slate-200/60' : 'text-slate-600 hover:bg-white/50'
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+                isActive('/analytics') 
+                  ? 'bg-white text-indigo-600 shadow-xs font-black' 
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
-              <span>📊</span><span>สถิติ</span>
+              <span>📊</span><span>สถิติการสอบ</span>
             </Link>
           </div>
+
+          <div className="hidden md:flex items-center gap-3 shrink-0">
+            
+            {(role === 'creator' || role === 'admin') && (
+              <Link
+                to="/admin"
+                className="px-4 py-2 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 border border-slate-700"
+                title="จัดการข้อสอบและระบบหลังบ้าน"
+              >
+                <span>⚙️</span><span>ระบบหลังบ้าน</span>
+              </Link>
+            )}
+
+            {!loading && user && (
+              <div className="relative">
+                <button
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center gap-2 pl-2 pr-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200/80 rounded-2xl text-xs font-bold text-slate-700 transition-all shadow-2xs cursor-pointer"
+                >
+                  <span className="w-6 h-6 rounded-lg bg-indigo-500/10 text-indigo-600 font-black flex items-center justify-center text-xs uppercase font-mono">
+                    {getDisplayName().charAt(0)}
+                  </span>
+                  <span className="max-w-[100px] truncate">{getDisplayName()}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-md uppercase font-mono ${roleInfo.style}`}>
+                    {roleInfo.text}
+                  </span>
+                  <span className="text-[10px] text-slate-400">▾</span>
+                </button>
+
+                {isProfileOpen && (
+                  <>
+                    <div 
+                      onClick={() => setIsProfileOpen(false)} 
+                      className="fixed inset-0 z-40 cursor-default"
+                    />
+
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-2xl border border-slate-200/80 shadow-xl p-2 z-50 animate-fadeIn space-y-1">
+                      <div className="px-3 py-2 border-b border-slate-100">
+                        <div className="text-xs font-bold text-slate-900 truncate">{getDisplayName()}</div>
+                        <div className="text-[11px] text-slate-400 truncate font-mono">{user.email}</div>
+                      </div>
+
+                      {/* 🌟 เพิ่มปุ่มตั้งค่าบัญชีตรงนี้ สำหรับจอคอมพิวเตอร์ */}
+                      <Link
+                        to="/profile"
+                        onClick={() => setIsProfileOpen(false)}
+                        className="w-full px-3 py-2 text-left rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-all flex items-center gap-2"
+                      >
+                        <span>⚙️</span><span>ตั้งค่าบัญชี / รหัสผ่าน</span>
+                      </Link>
+
+                      <button
+                        onClick={handleSignOut}
+                        className="w-full px-3 py-2 text-left rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 transition-all flex items-center gap-2 cursor-pointer"
+                      >
+                        <span>→</span><span>ออกจากระบบ</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex md:hidden items-center gap-2">
+            {(role === 'creator' || role === 'admin') && (
+              <Link
+                to="/admin"
+                className="p-2 bg-slate-900 text-white rounded-xl text-xs font-bold shadow-xs"
+                title="หลังบ้าน"
+              >
+                ⚙️
+              </Link>
+            )}
+
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all cursor-pointer"
+              aria-label="Toggle Menu"
+            >
+              <span className="text-base font-bold leading-none">{isMobileMenuOpen ? '✕' : '☰'}</span>
+            </button>
+          </div>
+
+        </div>
+
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 pt-2 pb-6 space-y-3 animate-fadeIn">
+            <div className="space-y-1">
+              <Link
+                to="/"
+                className={`block px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
+                  isActive('/') ? 'bg-indigo-50 text-indigo-600 font-black' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                📝 คลังข้อสอบ (หน้าแรก)
+              </Link>
+              <Link
+                to="/mistakes"
+                className={`block px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
+                  isActive('/mistakes') ? 'bg-red-50 text-red-600 font-black' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                💡 คลังข้อผิดพลาดและสมุดทบทวน
+              </Link>
+              <Link
+                to="/analytics"
+                className={`block px-4 py-3 rounded-2xl text-xs font-bold transition-all ${
+                  isActive('/analytics') ? 'bg-indigo-50 text-indigo-600 font-black' : 'text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                📊 สถิติและความคืบหน้าการสอบ
+              </Link>
+            </div>
+
+            {user && (
+              <div className="pt-3 border-t border-slate-100 space-y-2">
+                <div className="px-4 py-1 flex items-center justify-between">
+                  <div className="min-w-0">
+                    <div className="text-xs font-bold text-slate-900 truncate">{getDisplayName()}</div>
+                    <div className="text-[10px] text-slate-400 font-mono truncate">{user.email}</div>
+                  </div>
+                  <span className={`text-[10px] px-2.5 py-1 rounded-lg uppercase font-mono ${roleInfo.style}`}>
+                    {roleInfo.text}
+                  </span>
+                </div>
+
+                {/* 🌟 เพิ่มปุ่มตั้งค่าบัญชีตรงนี้ สำหรับหน้าจอมือถือ */}
+                <Link
+                  to="/profile"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block w-full px-4 py-3 rounded-2xl bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-all flex items-center gap-2"
+                >
+                  <span>⚙️</span><span>ตั้งค่าบัญชี / รหัสผ่าน</span>
+                </Link>
+
+                <button
+                  onClick={handleSignOut}
+                  className="w-full px-4 py-3 rounded-2xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span>→</span><span>ออกจากระบบ</span>
+                </button>
+              </div>
+            )}
+          </div>
         )}
-      </header>
+      </nav>
     </>
   )
 }

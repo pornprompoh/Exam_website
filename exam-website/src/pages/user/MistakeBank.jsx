@@ -109,17 +109,6 @@ export default function MistakeBank() {
 
       <Navbar showNavPills={true} />
 
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-10 sm:py-16 border-b border-slate-700 shadow-inner">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white mb-2 sm:mb-3">
-            คลังข้อผิดพลาด และสมุดทบทวน 💡
-          </h1>
-          <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto leading-relaxed">
-            ระบบรวบรวมข้อที่คุณเคยทำผิดหรือลืมตอบไว้โดยอัตโนมัติ กลับมาทบทวนเฉลยละเอียดที่นี่ และกดนำออกเมื่อคุณทำความเข้าใจข้อนั้นได้อย่างถ่องแท้แล้วครับ
-          </p>
-        </div>
-      </div>
-
       <div className="max-w-5xl mx-auto px-3 sm:px-6 mt-6 sm:mt-8 min-w-0">
         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8 min-w-0">
           <div className="flex items-center gap-2 sm:gap-2.5">

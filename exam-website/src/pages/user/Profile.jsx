@@ -133,17 +133,6 @@ export default function Profile() {
 
       <Navbar showNavPills={true} />
 
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white py-10 sm:py-16 border-b border-slate-700 shadow-inner">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white mb-2">
-            จัดการโปรไฟล์และตั้งค่าบัญชี 👤
-          </h1>
-          <p className="text-slate-400 text-xs sm:text-sm max-w-md mx-auto leading-relaxed">
-            แก้ไขชื่อที่ใช้แสดงบนผลสอบและสถิติ หรือตั้งค่ารหัสผ่านใหม่เพื่อความปลอดภัยของบัญชีครับ
-          </p>
-        </div>
-      </div>
-
       <main className="max-w-3xl mx-auto px-4 sm:px-6 mt-8 space-y-6 sm:space-y-8 min-w-0">
         
         {loading ? (
