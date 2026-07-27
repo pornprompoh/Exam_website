@@ -46,6 +46,29 @@ export default function ExamSession() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [examPhase, userAnswers])
 
+  // Prevent browser back/forward during an active test: show exit modal instead
+  useEffect(() => {
+    const onPopState = (e) => {
+      if (examPhase === 'testing' && Object.keys(userAnswers).length > 0) {
+        // Re-push state so the user stays on the page and show confirmation modal
+        try {
+          window.history.pushState(null, document.title, window.location.href)
+        } catch (err) {}
+        setShowExitModal(true)
+      }
+    }
+
+    if (examPhase === 'testing') {
+      // push an initial state so that a back action triggers popstate
+      try {
+        window.history.pushState(null, document.title, window.location.href)
+      } catch (err) {}
+      window.addEventListener('popstate', onPopState)
+    }
+
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [examPhase, userAnswers])
+
   useEffect(() => {
     let timer = null
     if (examPhase === 'testing' && totalTimeSeconds > 0) {
@@ -489,22 +512,9 @@ export default function ExamSession() {
                 <span>🏆</span><span className="hidden sm:inline">ผลการสอบ:</span><span className="text-sm sm:text-base underline decoration-2">{score}</span><span>/{questions.length}</span>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                {totalTimeSeconds > 0 && (
-                  <div className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-mono font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-2xs border transition-colors ${
-                    isTimeCritical 
-                      ? 'bg-red-600 text-white border-red-600 animate-pulse' 
-                      : 'bg-slate-900 text-white border-slate-900'
-                  }`}>
-                    <span>⏱️</span>
-                    <span>{formatTime(timeLeft)}</span>
-                  </div>
-                )}
-                
-                <div className="bg-slate-100/90 border border-slate-200/80 text-slate-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2.5 shadow-2xs shrink-0">
-                  <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full inline-block ${isAllAnswered ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
-                  <span><strong className="text-teal-600 font-mono text-xs sm:text-base">{answeredCount}</strong>/{questions.length} <span className="hidden sm:inline">ข้อ</span></span>
-                </div>
+              <div className="bg-slate-100/90 border border-slate-200/80 text-slate-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2.5 shadow-2xs shrink-0">
+                <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full inline-block ${isAllAnswered ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
+                <span><strong className="text-teal-600 font-mono text-xs sm:text-base">{answeredCount}</strong>/{questions.length} <span className="hidden sm:inline">ข้อ</span></span>
               </div>
             )}
           </div>
@@ -512,13 +522,29 @@ export default function ExamSession() {
       />
 
       {examPhase === 'testing' && totalTimeSeconds > 0 && (
-        <div className="w-full bg-slate-200 h-1.5 sticky top-16 z-20 overflow-hidden">
-          <div 
-            className={`h-full transition-all duration-1000 ease-linear ${
-              isTimeCritical ? 'bg-red-600' : 'bg-gradient-to-r from-teal-500 to-emerald-500'
-            }`}
-            style={{ width: `${timePercent}%` }}
-          />
+        <div className="sticky top-16 z-20 bg-transparent">
+          <div className="max-w-6xl mx-auto px-3 sm:px-6 py-1 flex items-center justify-end gap-3">
+            <div className="hidden md:flex items-center gap-2 text-[11px] sm:text-xs font-black uppercase tracking-wide text-slate-600">
+              <span className="text-sm">⏳</span>
+              <span>เวลาที่เหลือ</span>
+            </div>
+            <div className={`min-w-[64px] sm:min-w-[80px] px-2 py-1 rounded-xl font-mono font-black text-xs sm:text-sm text-center shadow-sm border ${
+              isTimeCritical
+                ? 'bg-red-600 text-white border-red-600 animate-pulse'
+                : 'bg-slate-900 text-white border-slate-900'
+            }`}>
+              {formatTime(timeLeft)}
+            </div>
+          </div>
+
+          <div className="w-full bg-slate-200 h-1 overflow-hidden">
+            <div 
+              className={`h-full transition-all duration-1000 ease-linear ${
+                isTimeCritical ? 'bg-red-600' : 'bg-gradient-to-r from-teal-500 to-emerald-500'
+              }`}
+              style={{ width: `${timePercent}%` }}
+            />
+          </div>
         </div>
       )}
 

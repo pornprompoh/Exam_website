@@ -79,9 +79,6 @@ export default function Navbar() {
               <span className="text-base font-black tracking-tight text-slate-900 leading-none">
                 EXAM<span className="text-indigo-600">BANK</span>
               </span>
-              <span className="text-[9px] font-extrabold tracking-widest text-slate-400 uppercase mt-0.5">
-                ONLINE PORTAL
-              </span>
             </div>
           </Link>
 

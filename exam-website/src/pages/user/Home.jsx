@@ -10,11 +10,11 @@ export default function Home() {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   
-  // 🌟 State สำหรับการค้นหาและกรองวิชา
+  // State สำหรับการค้นหาและกรองวิชา
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('ALL')
 
-  // 🌟 State สำหรับแทนที่ alert() ดิบๆ ด้วยหน้าต่างแจ้งเตือนสุดคลีน
+  // State สำหรับแทนที่ alert() ด้วยหน้าต่างแจ้งเตือน
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
     title: '',
@@ -33,7 +33,7 @@ export default function Home() {
     fetchCategoriesAndCounts()
   }, [])
 
-  // 🌟 ระบบดึงข้อมูลแบบ Safe Mapping ปลอดภัย 100% ไม่ติดบั๊ก Join แล้วข้อมูลหาย
+  // ระบบดึงข้อมูลแบบ Safe Mapping ปลอดภัย 100%
   async function fetchCategoriesAndCounts() {
     setLoading(true)
     try {
@@ -76,19 +76,30 @@ export default function Home() {
     }
   }
 
-  // กรองรายการวิชาตามข้อความค้นหาและตัวเลือกดรอปดาวน์
+  // 🌟 ฟังก์ชันกรองรายการวิชา (อัปเกรดให้รองรับการค้นหาด้วย Subject Code เช่น #486002 ได้ด้วย)
   const filteredCategories = categories.filter(cat => {
-    const matchesSearch = cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          (cat.description && cat.description.toLowerCase().includes(searchQuery.toLowerCase()))
+    const cleanSearch = searchQuery.toLowerCase().replace('#', '').trim()
+
+    // เงื่อนไขที่ 1: ตรวจสอบจากชื่อวิชา หรือคำอธิบาย
+    const matchesText = 
+      cat.name.toLowerCase().includes(cleanSearch) ||
+      (cat.description && cat.description.toLowerCase().includes(cleanSearch))
+
+    // เงื่อนไขที่ 2: ตรวจสอบจากรหัส Subject Code (ดึง 6 ตัวแรกของ ID มาเทียบ)
+    const subjectCode = cat.id ? cat.id.toString().slice(0, 6).toLowerCase() : ''
+    const matchesCode = subjectCode.includes(cleanSearch)
+
+    // เงื่อนไขตัวกรองดรอปดาวน์
     const matchesFilter = selectedFilter === 'ALL' || cat.id === selectedFilter
-    return matchesSearch && matchesFilter
+
+    return (matchesText || matchesCode) && matchesFilter
   })
 
   return (
     <div className="min-h-screen bg-slate-100/60 text-slate-800 font-sans pb-24 selection:bg-indigo-500 selection:text-white">
       <Navbar />
 
-      {/* หน้าต่างแจ้งเตือนข้อผิดพลาด (แทนที่ alert) */}
+      {/* หน้าต่างแจ้งเตือนข้อผิดพลาด */}
       <ConfirmModal
         isOpen={modalConfig.isOpen}
         type="warning"
@@ -100,7 +111,7 @@ export default function Home() {
         onClose={closeModal}
       />
 
-      {/* 🌟 1. Compact Dashboard Header: กะทัดรัด สบายตา ไม่กินพื้นที่หน้าจอ */}
+      {/* 1. Compact Dashboard Header */}
       <div className="bg-slate-50 border-b border-slate-200/80 py-6 sm:py-8 px-4 sm:px-6 transition-all">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
@@ -112,7 +123,7 @@ export default function Home() {
                 คลังข้อสอบและชุดแบบทดสอบ
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 truncate mt-0.5">
-                เลือกหมวดหมู่วิชาที่ต้องการฝึกฝน ระบบจะทำการสุ่มโจทย์และสลับตัวเลือกเพื่อท้าทายความรู้ของคุณครับ
+                เลือกหมวดหมู่วิชาที่ต้องการฝึกฝน ระบบจะทำการสุ่มโจทย์และสลับตัวเลือกเพื่อท้าทายความรู้ของคุณ!
               </p>
             </div>
           </div>
@@ -125,21 +136,21 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 🌟 2. Main Workspace: แถบค้นหาและตารางการ์ดวิชา */}
+      {/* 2. Main Workspace: แถบค้นหาและตารางการ์ดวิชา */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-8 space-y-6">
         
-        {/* แผงกรองและค้นหาข้อมูล (Streamlined Filter Bar) */}
+        {/* แผงกรองและค้นหาข้อมูล */}
         {categories.length > 0 && (
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
             
-            {/* กล่องค้นหาด้วยข้อความ */}
+            {/* กล่องค้นหาด้วยข้อความ (รองรับชื่อวิชาและรหัส Subject Code) */}
             <div className="relative flex-1">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
                 🔍
               </span>
               <input
                 type="text"
-                placeholder="พิมพ์ชื่อวิชา หรือคำค้นหาที่ต้องการ..."
+                placeholder="พิมพ์ชื่อวิชาหรือรหัสวิชา..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
@@ -212,6 +223,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {filteredCategories.map((cat) => {
               const hasQuestions = cat.questionCount > 0
+              const subjectCode = cat.id ? cat.id.substring(0, 6).toUpperCase() : '000000'
 
               return (
                 <div
@@ -230,7 +242,7 @@ export default function Home() {
                             {cat.name}
                           </h3>
                           <span className="text-[11px] font-bold text-slate-400 block mt-0.5">
-                            SUBJECT CODE: #{cat.id.substring(0, 6).toUpperCase()}
+                            SUBJECT CODE: <span className="text-indigo-600 font-mono">#{subjectCode}</span>
                           </span>
                         </div>
                       </div>
