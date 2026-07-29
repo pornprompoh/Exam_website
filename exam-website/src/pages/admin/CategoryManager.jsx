@@ -4,6 +4,7 @@ import LoadingScreen from '../../components/common/LoadingScreen'
 import EmptyState from '../../components/common/EmptyState'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import ShareCategoryModal from '../../components/admin/ShareCategoryModal'
+import BatchActionBar from '../../components/admin/BatchActionBar' // 🌟 นำเข้า Component ใหม่
 
 export default function CategoryManager() {
   const [categories, setCategories] = useState([])
@@ -17,10 +18,15 @@ export default function CategoryManager() {
   
   const [editingCat, setEditingCat] = useState(null)
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [deleteTarget, setDeleteTarget] = useState(null)
   
-  // 🌟 State สำหรับแผงจัดการเจ้าของร่วม (Share Modal)
+  const [deleteTarget, setDeleteTarget] = useState(null) 
   const [shareTargetCat, setShareTargetCat] = useState(null)
+
+  // State สำหรับระบบ Pagination, Sorting และ การเลือกหลายรายการ
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+  const [sortOrder, setSortOrder] = useState('asc')
+  const [selectedItems, setSelectedItems] = useState([])
 
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -51,18 +57,16 @@ export default function CategoryManager() {
     initUserAndCategories()
   }, [])
 
-  // 🌟 อัปเกรดการดึงข้อมูล ให้ดึงทั้ง "วิชาที่สร้างเอง" หรือ "วิชาที่เป็นเจ้าของร่วม (co_owners)"
   async function fetchCategories(role = userRole, userId = currentUserId) {
     setLoading(true)
     try {
       let query = supabase.from('categories').select('*')
       
       if (role !== 'admin' && userId) {
-        // ใช้คำสั่ง .or() เพื่อเช็คว่า เป็นผู้สร้างหลัก OR มีไอดีอยู่ใน array co_owners
         query = query.or(`created_by.eq.${userId},co_owners.cs.{${userId}}`)
       }
 
-      const { data, error } = await query.order('name')
+      const { data, error } = await query.order('created_at', { ascending: true })
       if (error) throw error
       setCategories(data || [])
     } catch (err) {
@@ -72,6 +76,51 @@ export default function CategoryManager() {
     }
   }
 
+  // ==========================================
+  // Logic การเรียงลำดับและแบ่งหน้า (Sorting & Pagination)
+  // ==========================================
+  const sortedCategories = [...categories].sort((a, b) => {
+    const dateA = new Date(a.created_at || 0).getTime()
+    const dateB = new Date(b.created_at || 0).getTime()
+    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+  })
+
+  const totalPages = Math.ceil(sortedCategories.length / itemsPerPage) || 1
+  const paginatedCategories = sortedCategories.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')
+    setCurrentPage(1)
+  }
+
+  // ==========================================
+  // Logic การเลือก Checkbox (Selection)
+  // ==========================================
+  const handleSelectAllInPage = (e) => {
+    const pageIds = paginatedCategories.map(c => c.id)
+    if (e.target.checked) {
+      const newSelected = [...new Set([...selectedItems, ...pageIds])]
+      setSelectedItems(newSelected)
+    } else {
+      setSelectedItems(selectedItems.filter(id => !pageIds.includes(id)))
+    }
+  }
+
+  const handleSelectItem = (id) => {
+    setSelectedItems(prev => 
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+    )
+  }
+
+  const isAllCurrentPageSelected = paginatedCategories.length > 0 && paginatedCategories.every(c => selectedItems.includes(c.id))
+  const selectedCountInPage = paginatedCategories.filter(c => selectedItems.includes(c.id)).length
+
+  // ==========================================
+  // Logic Form เพิ่ม / แก้ไข
+  // ==========================================
   const handleOpenCreateForm = () => {
     setEditingCat(null)
     setName('')
@@ -133,10 +182,26 @@ export default function CategoryManager() {
     } catch (err) { showModal('danger', 'เกิดข้อผิดพลาด', 'อัปเดตสถานะไม่สำเร็จ: ' + err.message) }
   }
 
-  async function handleConfirmDelete() {
-    if (!deleteTarget) return
+  // 🌟 Logic การเปิด/ปิด สถานะแบบกลุ่ม (Batch Status Update)
+  async function handleBatchToggleStatus(isActive) {
     try {
-      const { data: questionsInCat } = await supabase.from('questions').select('image_url, explanation_image_url').eq('category_id', deleteTarget.id)
+      const { error } = await supabase.from('categories').update({ is_active: isActive }).in('id', selectedItems)
+      if (error) throw error
+      
+      setCategories(prev => prev.map(item => selectedItems.includes(item.id) ? { ...item, is_active: isActive } : item))
+      showModal('success', 'อัปเดตสำเร็จ', `ปรับสถานะเป็น "${isActive ? 'เปิดใช้งาน' : 'ซ่อนฉบับร่าง'}" จำนวน ${selectedItems.length} รายการเรียบร้อยแล้ว`)
+    } catch (err) {
+      showModal('danger', 'เกิดข้อผิดพลาด', err.message)
+    }
+  }
+
+  // 🌟 Logic การลบทีละรายการ หรือ การลบแบบกลุ่ม (Batch Delete)
+  async function handleConfirmDelete() {
+    if (!deleteTarget || deleteTarget.length === 0) return
+    
+    try {
+      const { data: questionsInCat } = await supabase.from('questions').select('image_url, explanation_image_url').in('category_id', deleteTarget)
+      
       if (questionsInCat && questionsInCat.length > 0) {
         const filesToRemove = []
         questionsInCat.forEach(q => {
@@ -146,23 +211,33 @@ export default function CategoryManager() {
         if (filesToRemove.length > 0) await supabase.storage.from('exam-images').remove(filesToRemove)
       }
 
-      const { error } = await supabase.from('categories').delete().eq('id', deleteTarget.id)
+      const { error } = await supabase.from('categories').delete().in('id', deleteTarget)
       if (error) throw error
       
-      setCategories((prev) => prev.filter((item) => item.id !== deleteTarget.id))
-      if (editingCat?.id === deleteTarget.id) handleCloseForm()
+      setCategories((prev) => prev.filter((item) => !deleteTarget.includes(item.id)))
+      setSelectedItems((prev) => prev.filter(id => !deleteTarget.includes(id)))
+      
+      if (editingCat && deleteTarget.includes(editingCat.id)) handleCloseForm()
+      
+      const deletedCount = deleteTarget.length
       setDeleteTarget(null)
-      showModal('success', 'ลบสำเร็จ!', 'ลบหมวดหมู่วิชา ข้อสอบ และไฟล์รูปภาพทั้งหมดภายในออกเรียบร้อยแล้วครับ')
-    } catch (err) { showModal('danger', 'ลบไม่สำเร็จ', err.message) }
+      showModal('success', 'ลบสำเร็จ!', `ลบหมวดหมู่วิชาจำนวน ${deletedCount} หมวด ข้อสอบ และไฟล์รูปภาพทั้งหมดภายในออกเรียบร้อยแล้วครับ`)
+      
+      if (paginatedCategories.length === deletedCount && currentPage > 1) {
+        setCurrentPage(prev => prev - 1)
+      }
+    } catch (err) { 
+      showModal('danger', 'ลบไม่สำเร็จ', err.message) 
+    }
   }
 
   return (
-    <div className="space-y-8 text-slate-200 overflow-x-hidden relative">
+    <div className="space-y-6 sm:space-y-8 text-slate-200 overflow-x-hidden relative pb-32">
       
       <ConfirmModal
         isOpen={!!deleteTarget}
         type="danger"
-        title="ยืนยันการลบหมวดหมู่นี้?"
+        title={deleteTarget?.length > 1 ? `ยืนยันการลบ ${deleteTarget.length} หมวดหมู่นี้?` : "ยืนยันการลบหมวดหมู่นี้?"}
         description="ข้อสอบและสถิติทั้งหมดที่เชื่อมโยงกับหมวดวิชานี้จะถูกลบออกอย่างถาวร ไม่สามารถกู้คืนได้ครับ"
         confirmText="🚨 ยืนยันลบถาวร"
         cancelText="← ยกเลิก"
@@ -181,7 +256,6 @@ export default function CategoryManager() {
         onClose={closeModal}
       />
 
-      {/* 🌟 หน้าต่างจัดการเจ้าของร่วม (Co-ownership Modal) */}
       <ShareCategoryModal
         isOpen={!!shareTargetCat}
         onClose={() => setShareTargetCat(null)}
@@ -236,6 +310,7 @@ export default function CategoryManager() {
         </div>
       )}
 
+      {/* Header Section */}
       <div className="bg-slate-900 p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
           <span className="text-xl shrink-0">📁</span>
@@ -252,6 +327,37 @@ export default function CategoryManager() {
         </button>
       </div>
 
+      {/* แถบ Control Bar (Pagination & Sorting UI) */}
+      {categories.length > 0 && (
+        <div className="bg-[#0A0F1C]/80 border border-slate-800 p-3 sm:p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            <label className="flex items-center gap-2 cursor-pointer bg-[#0A0F1C] px-3 py-2 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors">
+              <input 
+                type="checkbox" 
+                checked={isAllCurrentPageSelected}
+                onChange={handleSelectAllInPage}
+                className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-[#0A0F1C] cursor-pointer" 
+              />
+              <span className="text-xs sm:text-sm font-bold text-slate-300 select-none">เลือกหน้านี้ ({selectedCountInPage})</span>
+            </label>
+            <span className="text-xs sm:text-sm font-bold text-slate-300">
+              วิชาทั้งหมด ({categories.length} หมวด)
+            </span>
+            <span className="text-[11px] sm:text-xs font-bold bg-indigo-500/10 text-indigo-400 px-3 py-1.5 rounded-full border border-indigo-500/20 tracking-wide">
+              หน้า {currentPage}/{totalPages}
+            </span>
+          </div>
+          <button 
+            onClick={toggleSortOrder}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 bg-[#0A0F1C] hover:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-700 text-xs sm:text-sm font-bold transition-all text-slate-300 cursor-pointer"
+          >
+            <span className="text-indigo-400 text-base leading-none">🔀</span>
+            <span>เรียงลำดับ: <strong className="text-amber-500 font-black">{sortOrder === 'asc' ? 'วิชาแรก ➔ ล่าสุด' : 'ล่าสุด ➔ วิชาแรก'}</strong></span>
+          </button>
+        </div>
+      )}
+
+      {/* ส่วนแสดงรายการหมวดหมู่ */}
       <div className="w-full space-y-4">
         {loading ? (
           <LoadingScreen text="กำลังดึงหมวดหมู่วิชาทั้งหมด..." />
@@ -263,48 +369,56 @@ export default function CategoryManager() {
             theme="dark"
           />
         ) : (
-          categories.map((cat) => {
+          paginatedCategories.map((cat) => {
             const isOwner = cat.created_by === currentUserId || userRole === 'admin'
             const isCoOwner = (cat.co_owners || []).includes(currentUserId) && !isOwner
             const coOwnersCount = (cat.co_owners || []).length
+            const isSelected = selectedItems.includes(cat.id)
 
             return (
               <div 
                 key={cat.id} 
-                className={`p-5 sm:p-6 rounded-3xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0 ${
+                className={`p-4 sm:p-6 rounded-3xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 min-w-0 ${
+                  isSelected ? 'border-indigo-500 bg-slate-900 shadow-md ring-1 ring-indigo-500' : 
                   editingCat?.id === cat.id ? 'border-amber-500 bg-slate-900/90 shadow-md' : 'bg-slate-900 border-slate-800 hover:border-slate-700'
                 }`}
               >
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                    <span className="text-base sm:text-lg">📖</span>
-                    <h4 className="text-base font-extrabold text-white truncate max-w-md">{cat.name}</h4>
-                    
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-                      cat.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
-                    }`}>
-                      {cat.is_active ? '● เปิดใช้งาน' : '⭕ ปิดใช้งาน'}
-                    </span>
-
-                    {/* 🌟 ป้ายแสดงสถานะความเป็นเจ้าของ */}
-                    {isOwner ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">👑 เจ้าของหลัก</span>
-                    ) : isCoOwner ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">🤝 เจ้าของร่วม</span>
-                    ) : null}
-
-                    {coOwnersCount > 0 && (
-                      <span className="text-[10px] font-medium text-slate-400 bg-slate-950 px-2 py-0.5 rounded-full border border-slate-800">
-                        👥 ดูแลร่วม {coOwnersCount} คน
+                <div className="min-w-0 flex-1 flex items-start sm:items-center gap-4">
+                  <input 
+                    type="checkbox" 
+                    checked={isSelected}
+                    onChange={() => handleSelectItem(cat.id)}
+                    className="w-4 h-4 rounded bg-slate-800 border-slate-600 text-indigo-500 mt-1 sm:mt-0 cursor-pointer shrink-0" 
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <span className="text-base sm:text-lg">📖</span>
+                      <h4 className="text-base font-extrabold text-white truncate max-w-md">{cat.name}</h4>
+                      
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                        cat.is_active ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'
+                      }`}>
+                        {cat.is_active ? '● เปิดใช้งาน' : '⭕ ปิดใช้งาน'}
                       </span>
-                    )}
+
+                      {isOwner ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 shrink-0">👑 เจ้าของหลัก</span>
+                      ) : isCoOwner ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 shrink-0">🤝 เจ้าของร่วม</span>
+                      ) : null}
+
+                      {coOwnersCount > 0 && (
+                        <span className="text-[10px] font-medium text-slate-400 bg-slate-950 px-2 py-0.5 rounded-full border border-slate-800">
+                          👥 ดูแลร่วม {coOwnersCount} คน
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400 line-clamp-2 pl-7 leading-relaxed">{cat.description || 'ไม่มีคำอธิบาย'}</p>
                   </div>
-                  <p className="text-xs text-slate-400 line-clamp-2 pl-7 leading-relaxed">{cat.description || 'ไม่มีคำอธิบาย'}</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5 self-end sm:self-auto shrink-0 pt-3 sm:pt-0 border-t sm:border-0 border-slate-800/80 w-full sm:w-auto justify-end">
                   
-                  {/* 🌟 ปุ่มเปิดหน้าต่างจัดการเจ้าของร่วม (Share Button) */}
                   <button
                     onClick={() => setShareTargetCat(cat)}
                     className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
@@ -329,10 +443,9 @@ export default function CategoryManager() {
                     <span>✏️</span><span>แก้ไข</span>
                   </button>
 
-                  {/* ลบได้เฉพาะเจ้าของหลัก หรือ Admin */}
                   {isOwner && (
                     <button
-                      onClick={() => setDeleteTarget(cat)}
+                      onClick={() => setDeleteTarget([cat.id])}
                       className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center"
                       title="ลบหมวดหมู่"
                     >
@@ -342,8 +455,53 @@ export default function CategoryManager() {
                 </div>
               </div>
             )
-          }))}
+          })
+        )}
+      </div>
+
+      {/* ปุ่มเปลี่ยนหน้า (Pagination Controls) ด้านล่าง */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex items-center justify-center gap-2 pb-8">
+          <button 
+            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          >
+            ← ก่อนหน้า
+          </button>
+          <div className="flex items-center gap-1.5 mx-1 sm:mx-2 overflow-x-auto">
+            {[...Array(totalPages)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentPage(i + 1)}
+                className={`w-8 h-8 shrink-0 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
+                  currentPage === i + 1 
+                    ? 'bg-indigo-600 text-white shadow-md' 
+                    : 'bg-slate-900 text-slate-400 border border-slate-800 hover:bg-slate-800'
+                }`}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+          <button 
+            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs sm:text-sm font-bold text-slate-300 hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          >
+            ถัดไป →
+          </button>
         </div>
+      )}
+
+      {/* 🌟 เรียกใช้งาน Component แถบเครื่องมือลอย (BatchActionBar) ตรงนี้ */}
+      <BatchActionBar 
+        selectedCount={selectedItems.length}
+        itemName="หมวด"
+        onClearSelection={() => setSelectedItems([])}
+        onToggleStatus={handleBatchToggleStatus}
+        onDelete={() => setDeleteTarget(selectedItems)}
+      />
 
     </div>
   )
