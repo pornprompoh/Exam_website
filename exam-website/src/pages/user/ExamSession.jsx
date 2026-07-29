@@ -46,29 +46,6 @@ export default function ExamSession() {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [examPhase, userAnswers])
 
-  // Prevent browser back/forward during an active test: show exit modal instead
-  useEffect(() => {
-    const onPopState = (e) => {
-      if (examPhase === 'testing' && Object.keys(userAnswers).length > 0) {
-        // Re-push state so the user stays on the page and show confirmation modal
-        try {
-          window.history.pushState(null, document.title, window.location.href)
-        } catch (err) {}
-        setShowExitModal(true)
-      }
-    }
-
-    if (examPhase === 'testing') {
-      // push an initial state so that a back action triggers popstate
-      try {
-        window.history.pushState(null, document.title, window.location.href)
-      } catch (err) {}
-      window.addEventListener('popstate', onPopState)
-    }
-
-    return () => window.removeEventListener('popstate', onPopState)
-  }, [examPhase, userAnswers])
-
   useEffect(() => {
     let timer = null
     if (examPhase === 'testing' && totalTimeSeconds > 0) {
@@ -448,6 +425,7 @@ export default function ExamSession() {
   return (
     <div className="min-h-screen bg-slate-50/70 pb-24 font-sans text-slate-800 relative overflow-x-hidden">
       
+      {/* Modals... */}
       <ConfirmModal
         isOpen={showExitModal}
         type="danger"
@@ -486,6 +464,7 @@ export default function ExamSession() {
         onClose={() => setShowTimeOutModal(false)}
       />
 
+      {/* 🌟 1. ปรับปรุง Navbar ด้านบนให้รวมสถานะเวลาและข้อสอบไว้ด้วยกัน ไม่เปลืองพื้นที่ */}
       <Navbar 
         showNavPills={false}
         customLeftContent={
@@ -499,8 +478,8 @@ export default function ExamSession() {
             </button>
             <div className="min-w-0">
               <span className="font-black text-sm sm:text-lg text-slate-900 tracking-tight block truncate">{categoryName}</span>
-              <span className="block text-[10px] sm:text-[11px] font-bold text-teal-600 -mt-0.5 tracking-wide truncate">
-                <span>📝 โหมดทดสอบ</span><span className="mx-1 sm:mx-1.5 text-slate-300">|</span><span>{questions.length} ข้อ</span>
+              <span className="block text-[10px] sm:text-[11px] font-bold text-teal-600 -mt-0.5 tracking-wide truncate flex items-center gap-1.5">
+                <span>📝 โหมดทดสอบ</span><span className="w-1 h-1 rounded-full bg-teal-300"></span><span>{questions.length} ข้อ</span>
               </span>
             </div>
           </div>
@@ -508,46 +487,47 @@ export default function ExamSession() {
         customRightContent={
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {examPhase === 'submitted' ? (
-              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-3 sm:px-4.5 py-1.5 sm:py-2 rounded-xl font-black text-xs sm:text-sm shadow-md shadow-emerald-500/20 flex items-center gap-1.5 animate-fadeIn shrink-0">
+              <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 sm:px-5 py-2 rounded-xl font-black text-xs sm:text-sm shadow-md flex items-center gap-1.5 shrink-0 animate-fadeIn">
                 <span>🏆</span><span className="hidden sm:inline">ผลการสอบ:</span><span className="text-sm sm:text-base underline decoration-2">{score}</span><span>/{questions.length}</span>
               </div>
             ) : (
-              <div className="bg-slate-100/90 border border-slate-200/80 text-slate-700 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2.5 shadow-2xs shrink-0">
-                <span className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full inline-block ${isAllAnswered ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
-                <span><strong className="text-teal-600 font-mono text-xs sm:text-base">{answeredCount}</strong>/{questions.length} <span className="hidden sm:inline">ข้อ</span></span>
+              // 🌟 กล่อง Capsule มัดรวมเวลาและสถานะข้อสอบให้อยู่ในแถวเดียว
+              <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 sm:p-1.5 rounded-2xl border border-slate-200/80 shadow-2xs shrink-0">
+                {totalTimeSeconds > 0 && (
+                  <div className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-mono font-black text-xs sm:text-sm flex items-center gap-1.5 transition-colors shadow-sm border ${
+                    isTimeCritical 
+                      ? 'bg-red-500 text-white border-red-600 animate-pulse' 
+                      : 'bg-white text-slate-700 border-slate-200'
+                  }`}>
+                    <span>⏳</span>
+                    <span>{formatTime(timeLeft)}</span>
+                  </div>
+                )}
+                
+                <div className="bg-white border border-slate-200 text-slate-600 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 shadow-sm shrink-0">
+                  <span className={`w-2 h-2 rounded-full inline-block ${isAllAnswered ? 'bg-emerald-500' : 'bg-amber-400 animate-pulse'}`}></span>
+                  <span className="hidden sm:inline">ทำแล้ว</span>
+                  <span><strong className="text-teal-600 font-mono text-xs sm:text-sm">{answeredCount}</strong>/{questions.length}</span>
+                </div>
               </div>
             )}
           </div>
         }
       />
 
-      {examPhase === 'testing' && totalTimeSeconds > 0 && (
-        <div className="sticky top-16 z-20 bg-transparent">
-          <div className="max-w-6xl mx-auto px-3 sm:px-6 py-1 flex items-center justify-end gap-3">
-            <div className="hidden md:flex items-center gap-2 text-[11px] sm:text-xs font-black uppercase tracking-wide text-slate-600">
-              <span className="text-sm">⏳</span>
-              <span>เวลาที่เหลือ</span>
-            </div>
-            <div className={`min-w-[64px] sm:min-w-[80px] px-2 py-1 rounded-xl font-mono font-black text-xs sm:text-sm text-center shadow-sm border ${
-              isTimeCritical
-                ? 'bg-red-600 text-white border-red-600 animate-pulse'
-                : 'bg-slate-900 text-white border-slate-900'
-            }`}>
-              {formatTime(timeLeft)}
-            </div>
-          </div>
-
-          <div className="w-full bg-slate-200 h-1 overflow-hidden">
-            <div 
-              className={`h-full transition-all duration-1000 ease-linear ${
-                isTimeCritical ? 'bg-red-600' : 'bg-gradient-to-r from-teal-500 to-emerald-500'
-              }`}
-              style={{ width: `${timePercent}%` }}
-            />
-          </div>
+      {/* 🌟 2. เส้นแถบความคืบหน้า (Progress Bar) วิ่งติดขอบล่างของ Navbar พอดี */}
+      {examPhase === 'testing' && (
+        <div className="w-full bg-slate-200 h-1.5 sticky top-16 z-20 overflow-hidden shadow-sm">
+          <div 
+            className={`h-full transition-all duration-1000 ease-linear ${
+              totalTimeSeconds > 0 && isTimeCritical ? 'bg-red-500' : 'bg-gradient-to-r from-teal-400 to-emerald-500'
+            }`}
+            style={{ width: `${totalTimeSeconds > 0 ? timePercent : 100}%` }}
+          />
         </div>
       )}
 
+      {/* 🌟 3. พื้นที่ Layout เนื้อหาข้อสอบ (คงเดิม) */}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 min-w-0">
         
         <div className="lg:col-span-3 order-1 lg:order-1 space-y-6 min-w-0">
@@ -589,7 +569,6 @@ export default function ExamSession() {
                     cardStyle = 'border-emerald-500 bg-emerald-50/70 text-emerald-950 font-bold shadow-xs ring-1 ring-emerald-500'
                     badgeStyle = 'bg-emerald-500 text-white font-bold border-emerald-500'
                   } else if (isSelected && !isCorrectOption) {
-                    // 🌟 ตัดเส้นขีดฆ่าทิ้ง เหลือแค่สีแดงตัวหนา คลีนอ่านง่าย!
                     cardStyle = 'border-red-300 bg-red-50/70 text-red-900 font-semibold'
                     badgeStyle = 'bg-red-500 text-white font-bold border-red-500'
                   } else {
@@ -649,7 +628,7 @@ export default function ExamSession() {
                     <button
                       onClick={() => handleSubmitExam(false)}
                       disabled={saving}
-                      className="w-full sm:w-auto py-3 sm:py-3 px-6 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-md hover:shadow-lg flex items-center justify-center gap-2 shrink-0 order-first sm:order-none mb-2 sm:mb-0"
+                      className="w-full sm:w-auto py-3 sm:px-6 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-md hover:shadow-lg flex items-center justify-center gap-2 shrink-0 order-first sm:order-none mb-2 sm:mb-0"
                     >
                       <span>✨</span><span>ส่งข้อสอบและตรวจคะแนน</span>
                     </button>
