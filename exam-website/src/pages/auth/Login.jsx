@@ -5,7 +5,6 @@ import { supabase } from '../../lib/supabase'
 export default function Login() {
   const navigate = useNavigate()
   
-  // 🌟 เพิ่มสถานะ 'update-password' สำหรับกรณีเปลี่ยนรหัสผ่านใหม่หลังกดลิงก์เมล
   const [activeTab, setActiveTab] = useState('login') 
   
   const [email, setEmail] = useState('')
@@ -18,27 +17,26 @@ export default function Login() {
   const [successMsg, setSuccessMsg] = useState('')
 
   useEffect(() => {
-    // 🌟 ตรวจสอบว่าผู้ใช้คลิกลิงก์กู้คืนรหัสผ่านมาจากอีเมลหรือไม่
+    // 🌟 1. เช็คตั้งแต่ตอนโหลดหน้าเว็บเลยว่า มีการกดลิงก์รีเซ็ตมาหรือไม่ (ดูจาก Hash ใน URL)
+    const hash = window.location.hash
+    if (hash && hash.includes('type=recovery')) {
+      setActiveTab('update-password')
+      return // หยุดการทำงานส่วนอื่นทันที เพื่อไม่ให้โดนดีดไปหน้าอื่น
+    }
+
+    // 🌟 2. ดักฟังสถานะ Auth ทั่วไป
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
-        // ถ้าเป็นการเข้ามาจากลิงก์รีเซ็ต ให้สลับมาหน้ากรอกรหัสใหม่ทันที และไม่อนุญาตให้เข้าสู่ระบบอัตโนมัติ
         setActiveTab('update-password')
       } else if (event === 'SIGNED_IN' && activeTab !== 'update-password') {
-        // ถ้าเป็นการล็อกอินปกติทั่วไป ถึงจะยอมให้เข้าเว็บ
         navigate('/')
       }
     })
 
-    // เช็ค session เริ่มต้นเผื่อกรณีโหลดหน้าเว็บปกติ
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession()
-      // ถ้าไม่ได้อยู่ในโหมดรีเซ็ตรหัสผ่าน และมี session แล้ว ค่อยพาเข้าหน้าแรก
-      if (session && activeTab !== 'update-password') {
-        // เช็ค URL เพิ่มเติมว่ามี type=recovery หรือไม่
-        const hash = window.location.hash
-        if (!hash.includes('type=recovery')) {
-          navigate('/')
-        }
+      if (session && activeTab !== 'update-password' && !window.location.hash.includes('type=recovery')) {
+        navigate('/')
       }
     }
     checkUser()
@@ -72,7 +70,6 @@ export default function Login() {
 
       setLoading(true)
       try {
-        // อัปเดตรหัสผ่านใหม่เข้าสู่ Supabase
         const { error } = await supabase.auth.updateUser({ password: password })
         if (error) throw error
 
@@ -82,6 +79,9 @@ export default function Login() {
           setPassword('')
           setConfirmPassword('')
           setSuccessMsg('')
+          // ล้าง Hash ใน URL ทิ้ง
+          window.location.hash = ''
+          navigate('/login')
         }, 2500)
       } catch (err) {
         setErrorMsg(err.message || 'ไม่สามารถเปลี่ยนรหัสผ่านได้ กรุณาลองใหม่อีกครั้ง')
@@ -113,7 +113,7 @@ export default function Login() {
     try {
       if (activeTab === 'forgot') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/login`, // 🌟 เปลี่ยนให้เด้งกลับมาที่หน้า Login / หรือหน้าจัดการรหัสผ่าน
+          redirectTo: `${window.location.origin}/login`, 
         })
         if (error) throw error
         
@@ -173,7 +173,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Tabs Control (ซ่อนเมื่ออยู่ในโหมดลืมรหัสผ่านหรือตั้งรหัสผ่านใหม่) */}
         {activeTab !== 'forgot' && activeTab !== 'update-password' && (
           <div className="flex p-1 bg-slate-100 rounded-2xl mb-8 border border-slate-200/60 shadow-inner">
             <button
@@ -217,7 +216,6 @@ export default function Login() {
 
         <form onSubmit={handleAuth} className="space-y-4 sm:space-y-5 animate-slideUp">
           
-          {/* กรณีโหมดเปลี่ยนรหัสผ่านใหม่ (Update Password) */}
           {activeTab === 'update-password' ? (
             <>
               <div>
@@ -257,7 +255,6 @@ export default function Login() {
             </>
           ) : (
             <>
-              {/* Email Input (ใช้สำหรับ Login, Register, Forgot) */}
               {activeTab !== 'update-password' && (
                 <div>
                   <label className="block text-[11px] sm:text-xs font-black text-slate-700 uppercase tracking-wider mb-2 pl-1">
@@ -276,7 +273,6 @@ export default function Login() {
                 </div>
               )}
 
-              {/* Password Inputs */}
               {activeTab !== 'forgot' && (
                 <div>
                   <div className="flex items-center justify-between mb-2 pl-1 pr-1">
