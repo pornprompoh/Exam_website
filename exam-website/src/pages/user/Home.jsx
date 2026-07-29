@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import Navbar from '../../components/common/Navbar'
 import LoadingScreen from '../../components/common/LoadingScreen'
@@ -9,12 +9,13 @@ import ConfirmModal from '../../components/common/ConfirmModal'
 export default function Home() {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
   
   // State สำหรับการค้นหาและกรองวิชา
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilter, setSelectedFilter] = useState('ALL')
 
-  // State สำหรับแทนที่ alert() ด้วยหน้าต่างแจ้งเตือน
+  // State สำหรับแจ้งเตือน
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
     title: '',
@@ -30,14 +31,33 @@ export default function Home() {
   }
 
   useEffect(() => {
-    fetchCategoriesAndCounts()
-  }, [])
+    // 🛡️ AUTH GUARD: ตรวจสอบการเข้าสู่ระบบ
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        navigate('/login', { replace: true })
+      }
+    }
+    checkAuth()
 
-  // ระบบดึงข้อมูลแบบ Safe Mapping ปลอดภัย 100%
+    // ดักจับการเปลี่ยนแปลงสถานะ (เช่น กด Logout จาก Navbar ให้เด้งออกทันที)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        navigate('/login', { replace: true })
+      }
+    })
+
+    fetchCategoriesAndCounts()
+
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [navigate])
+
+  // ดึงข้อมูลวิชาแบบ Safe Mapping
   async function fetchCategoriesAndCounts() {
     setLoading(true)
     try {
-      // 1. ดึงรายการวิชาทั้งหมดที่เปิดใช้งาน
       const { data: catsData, error: catErr } = await supabase
         .from('categories')
         .select('*')
@@ -46,7 +66,6 @@ export default function Home() {
 
       if (catErr) throw catErr
 
-      // 2. ดึงข้อสอบทั้งหมดที่เปิดใช้งาน เพื่อนำมานับจำนวนข้อในแต่ละวิชา
       const { data: questionsData, error: qErr } = await supabase
         .from('questions')
         .select('id, category_id')
@@ -54,7 +73,6 @@ export default function Home() {
 
       if (qErr) throw qErr
 
-      // 3. จับคู่และนับจำนวนข้ออย่างปลอดภัยใน JavaScript
       const countMap = new Map()
       if (questionsData) {
         questionsData.forEach(q => {
@@ -76,20 +94,12 @@ export default function Home() {
     }
   }
 
-  // 🌟 ฟังก์ชันกรองรายการวิชา (อัปเกรดให้รองรับการค้นหาด้วย Subject Code เช่น #486002 ได้ด้วย)
+  // ระบบกรองและค้นหา (รองรับชื่อวิชาและรหัส Subject Code)
   const filteredCategories = categories.filter(cat => {
     const cleanSearch = searchQuery.toLowerCase().replace('#', '').trim()
-
-    // เงื่อนไขที่ 1: ตรวจสอบจากชื่อวิชา หรือคำอธิบาย
-    const matchesText = 
-      cat.name.toLowerCase().includes(cleanSearch) ||
-      (cat.description && cat.description.toLowerCase().includes(cleanSearch))
-
-    // เงื่อนไขที่ 2: ตรวจสอบจากรหัส Subject Code (ดึง 6 ตัวแรกของ ID มาเทียบ)
+    const matchesText = cat.name.toLowerCase().includes(cleanSearch) || (cat.description && cat.description.toLowerCase().includes(cleanSearch))
     const subjectCode = cat.id ? cat.id.toString().slice(0, 6).toLowerCase() : ''
     const matchesCode = subjectCode.includes(cleanSearch)
-
-    // เงื่อนไขตัวกรองดรอปดาวน์
     const matchesFilter = selectedFilter === 'ALL' || cat.id === selectedFilter
 
     return (matchesText || matchesCode) && matchesFilter
@@ -99,7 +109,6 @@ export default function Home() {
     <div className="min-h-screen bg-slate-100/60 text-slate-800 font-sans pb-24 selection:bg-indigo-500 selection:text-white">
       <Navbar />
 
-      {/* หน้าต่างแจ้งเตือนข้อผิดพลาด */}
       <ConfirmModal
         isOpen={modalConfig.isOpen}
         type="warning"
@@ -111,7 +120,6 @@ export default function Home() {
         onClose={closeModal}
       />
 
-      {/* 1. Compact Dashboard Header */}
       <div className="bg-slate-50 border-b border-slate-200/80 py-6 sm:py-8 px-4 sm:px-6 transition-all">
         <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 sm:gap-4 min-w-0">
@@ -136,21 +144,17 @@ export default function Home() {
         </div>
       </div>
 
-      {/* 2. Main Workspace: แถบค้นหาและตารางการ์ดวิชา */}
       <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-8 space-y-6">
-        
-        {/* แผงกรองและค้นหาข้อมูล */}
         {categories.length > 0 && (
           <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
             
-            {/* กล่องค้นหาด้วยข้อความ (รองรับชื่อวิชาและรหัส Subject Code) */}
             <div className="relative flex-1">
               <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">
                 🔍
               </span>
               <input
                 type="text"
-                placeholder="พิมพ์ชื่อวิชาหรือรหัสวิชา..."
+                placeholder="พิมพ์ชื่อวิชา หรือรหัส Subject Code (เช่น #486002)..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
@@ -165,7 +169,6 @@ export default function Home() {
               )}
             </div>
 
-            {/* กล่องเลือกหมวดวิชาดรอปดาวน์ */}
             <div className="flex items-center gap-2 shrink-0">
               <select
                 value={selectedFilter}
@@ -190,11 +193,9 @@ export default function Home() {
                 </button>
               )}
             </div>
-
           </div>
         )}
 
-        {/* ตารางแสดงการ์ดหมวดหมู่วิชา */}
         {loading ? (
           <LoadingScreen text="กำลังเปิดคลังข้อสอบและเตรียมแบบทดสอบ..." />
         ) : filteredCategories.length === 0 ? (
@@ -230,7 +231,6 @@ export default function Home() {
                   key={cat.id}
                   className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between space-y-6 group"
                 >
-                  {/* ส่วนบน: ไอคอน ชื่อวิชา และคำอธิบาย */}
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -247,7 +247,6 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* ป้ายแสดงสถานะความพร้อมของข้อสอบ */}
                       {hasQuestions ? (
                         <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 shadow-2xs">
                           ● พร้อมสอบ
@@ -264,7 +263,6 @@ export default function Home() {
                     </p>
                   </div>
 
-                  {/* ส่วนล่าง: จำนวนข้อสอบ และปุ่มเริ่มทำข้อสอบ */}
                   <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-4 pl-14">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
                       <span>📝 มีข้อสอบ</span>
@@ -295,7 +293,6 @@ export default function Home() {
             })}
           </div>
         )}
-
       </main>
     </div>
   )
