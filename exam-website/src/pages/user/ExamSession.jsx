@@ -103,10 +103,8 @@ export default function ExamSession() {
 
   const handleCustomTimeChange = (val) => {
     setCustomTimeInput(val)
-    const num = parseInt(val, 10)
-    if (!isNaN(num) && num > 0) {
-      const validNum = num > 120 ? 120 : num
-      setSelectedTimeLimit(validNum)
+    if (selectedTimeLimit !== -1) {
+      setSelectedTimeLimit(-1)
     }
   }
 
@@ -354,8 +352,14 @@ export default function ExamSession() {
                     key={t.value}
                     type="button"
                     onClick={() => {
+                      if (t.value === -1) {
+                        setSelectedTimeLimit(-1)
+                        setCustomTimeInput((prev) => prev || '15')
+                        return
+                      }
+
                       setSelectedTimeLimit(t.value)
-                      if (t.value !== -1 && !customTimeInput) setCustomTimeInput('15')
+                      setCustomTimeInput('')
                     }}
                     className={`p-3.5 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer border text-left flex items-center justify-between ${
                       selectedTimeLimit === t.value
