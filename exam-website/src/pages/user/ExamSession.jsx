@@ -5,6 +5,16 @@ import Navbar from '../../components/common/Navbar'
 import LoadingScreen from '../../components/common/LoadingScreen'
 import ConfirmModal from '../../components/common/ConfirmModal'
 
+// 🌟 ฟังก์ชันสุ่มที่ได้มาตรฐาน (Fisher-Yates) กระจายตัวดีกว่า Math.random() ทั่วไป
+const shuffleArray = (array) => {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+};
+
 export default function ExamSession() {
   const { categoryId } = useParams()
   const [searchParams] = useSearchParams()
@@ -121,10 +131,45 @@ export default function ExamSession() {
       if (finalTime > 120) finalTime = 120
     }
 
-    const shuffled = [...allRawQuestions].sort(() => Math.random() - 0.5)
-    const selectedSlice = shuffled.slice(0, finalCount)
+    // 🌟 ระบบสุ่มแบบอัจฉริยะ (Smart Randomization)
+    const storageSeenKey = `seen_questions_cat_${categoryId}`
+    const storageMistakeKey = `mistake_questions_cat_${categoryId}`
+    
+    // ดึงประวัติจาก LocalStorage
+    const seenIds = JSON.parse(localStorage.getItem(storageSeenKey)) || []
+    const mistakeIds = JSON.parse(localStorage.getItem(storageMistakeKey)) || []
 
-    const prepared = selectedSlice.map((q) => {
+    // แบ่งกลุ่มข้อสอบ
+    const mistakePool = allRawQuestions.filter(q => mistakeIds.includes(q.id))
+    const unseenPool = allRawQuestions.filter(q => !seenIds.includes(q.id))
+    const seenCorrectPool = allRawQuestions.filter(q => seenIds.includes(q.id) && !mistakeIds.includes(q.id))
+
+    let selectedQuestions = []
+    
+    // โควต้า 1: ดึงข้อที่เคยทำ "ผิด" มาให้ทำใหม่ (ประมาณ 20% ของจำนวนที่จะสอบ)
+    let targetMistakeCount = Math.floor(finalCount * 0.2)
+    const shuffledMistakes = shuffleArray(mistakePool)
+    const actualMistakeCount = Math.min(targetMistakeCount, shuffledMistakes.length)
+    selectedQuestions.push(...shuffledMistakes.slice(0, actualMistakeCount))
+
+    // โควต้า 2: ดึงข้อที่ "ยังไม่เคยทำ" (ประมาณ 80% หรือเติมให้เต็ม)
+    const remainingForUnseen = finalCount - selectedQuestions.length
+    const shuffledUnseen = shuffleArray(unseenPool)
+    const actualUnseenCount = Math.min(remainingForUnseen, shuffledUnseen.length)
+    selectedQuestions.push(...shuffledUnseen.slice(0, actualUnseenCount))
+
+    // โควต้า 3: ถ้าข้อสอบยังไม่ครบตามจำนวน (แปลว่าทำเกือบหมดคลังแล้ว) ให้เอาข้อที่เคยทำถูกมาวนซ้ำ
+    const remainingToFill = finalCount - selectedQuestions.length
+    if (remainingToFill > 0) {
+      const shuffledSeenCorrect = shuffleArray(seenCorrectPool)
+      selectedQuestions.push(...shuffledSeenCorrect.slice(0, Math.min(remainingToFill, shuffledSeenCorrect.length)))
+    }
+
+    // สุ่มสลับลำดับข้อสอบทั้งหมดอีกรอบ เพื่อไม่ให้ข้อผิดไปกองอยู่หน้าแรกๆ
+    const finalSelectedSlice = shuffleArray(selectedQuestions)
+
+    // จัดเตรียมตัวเลือก (สลับช้อยส์ด้วย Fisher-Yates)
+    const prepared = finalSelectedSlice.map((q) => {
       if (!q.is_options_randomized || !q.options) {
         return { 
           ...q, 
@@ -133,15 +178,16 @@ export default function ExamSession() {
           originalOptionIndices: [0, 1, 2, 3]
         }
       }
+      
       const optionsWithOriginalIdx = q.options.map((opt, idx) => ({ text: opt, originalIdx: idx }))
-      optionsWithOriginalIdx.sort(() => Math.random() - 0.5)
-      const newCorrectIdx = optionsWithOriginalIdx.findIndex((item) => item.originalIdx === Number(q.correct_option))
+      const shuffledOptions = shuffleArray(optionsWithOriginalIdx) // สลับช้อยส์
+      const newCorrectIdx = shuffledOptions.findIndex((item) => item.originalIdx === Number(q.correct_option))
 
       return {
         ...q,
-        displayOptions: optionsWithOriginalIdx.map((item) => item.text),
+        displayOptions: shuffledOptions.map((item) => item.text),
         displayCorrectOption: newCorrectIdx,
-        originalOptionIndices: optionsWithOriginalIdx.map((item) => item.originalIdx)
+        originalOptionIndices: shuffledOptions.map((item) => item.originalIdx)
       }
     })
 
@@ -191,12 +237,25 @@ export default function ExamSession() {
     let totalScore = 0
     const mistakeItems = []
 
+    // 🌟 เตรียมตัวแปรเพื่อบันทึกประวัติลง LocalStorage
+    const storageSeenKey = `seen_questions_cat_${categoryId}`
+    const storageMistakeKey = `mistake_questions_cat_${categoryId}`
+    let currentSeenIds = JSON.parse(localStorage.getItem(storageSeenKey)) || []
+    let currentMistakeIds = JSON.parse(localStorage.getItem(storageMistakeKey)) || []
+
     questions.forEach((q) => {
       const selectedDisplayIdx = userAnswers[q.id]
       const isCorrect = selectedDisplayIdx !== undefined && selectedDisplayIdx === q.displayCorrectOption
 
+      // บันทึกว่าข้อนี้เคยเห็นแล้ว (Seen)
+      if (!currentSeenIds.includes(q.id)) {
+        currentSeenIds.push(q.id)
+      }
+
       if (isCorrect) {
         totalScore += 1
+        // ถ้าตอบถูก ให้ลบข้อนี้ออกจากรายการข้อที่เคยทำผิด
+        currentMistakeIds = currentMistakeIds.filter(id => id !== q.id)
       } else {
         const originalUserAnswerIdx = selectedDisplayIdx !== undefined 
           ? q.originalOptionIndices[selectedDisplayIdx] 
@@ -207,8 +266,17 @@ export default function ExamSession() {
           user_answer: originalUserAnswerIdx !== null ? String(originalUserAnswerIdx) : null,
           is_resolved: false
         })
+        
+        // ถ้าตอบผิด ให้เพิ่มข้อนี้เข้าไปในรายการข้อที่เคยทำผิด
+        if (!currentMistakeIds.includes(q.id)) {
+          currentMistakeIds.push(q.id)
+        }
       }
     })
+
+    // บันทึกประวัติอัปเดตกลับลงเครื่อง
+    localStorage.setItem(storageSeenKey, JSON.stringify(currentSeenIds))
+    localStorage.setItem(storageMistakeKey, JSON.stringify(currentMistakeIds))
 
     setScore(totalScore)
     setExamPhase('submitted')
@@ -468,7 +536,6 @@ export default function ExamSession() {
         onClose={() => setShowTimeOutModal(false)}
       />
 
-      {/* 🌟 1. ปรับปรุง Navbar ด้านบนให้รวมสถานะเวลาและข้อสอบไว้ด้วยกัน ไม่เปลืองพื้นที่ */}
       <Navbar 
         showNavPills={false}
         customLeftContent={
@@ -495,7 +562,6 @@ export default function ExamSession() {
                 <span>🏆</span><span className="hidden sm:inline">ผลการสอบ:</span><span className="text-sm sm:text-base underline decoration-2">{score}</span><span>/{questions.length}</span>
               </div>
             ) : (
-              // 🌟 กล่อง Capsule มัดรวมเวลาและสถานะข้อสอบให้อยู่ในแถวเดียว
               <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 sm:p-1.5 rounded-2xl border border-slate-200/80 shadow-2xs shrink-0">
                 {totalTimeSeconds > 0 && (
                   <div className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl font-mono font-black text-xs sm:text-sm flex items-center gap-1.5 transition-colors shadow-sm border ${
@@ -519,7 +585,6 @@ export default function ExamSession() {
         }
       />
 
-      {/* 🌟 2. เส้นแถบความคืบหน้า (Progress Bar) วิ่งติดขอบล่างของ Navbar พอดี */}
       {examPhase === 'testing' && (
         <div className="w-full bg-slate-200 h-1.5 sticky top-16 z-20 overflow-hidden shadow-sm">
           <div 
@@ -531,7 +596,6 @@ export default function ExamSession() {
         </div>
       )}
 
-      {/* 🌟 3. พื้นที่ Layout เนื้อหาข้อสอบ (คงเดิม) */}
       <div className="max-w-6xl mx-auto px-3 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 min-w-0">
         
         <div className="lg:col-span-3 order-1 lg:order-1 space-y-6 min-w-0">
