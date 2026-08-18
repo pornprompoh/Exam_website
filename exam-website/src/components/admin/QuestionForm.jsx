@@ -97,13 +97,21 @@ export default function QuestionForm({
     })
   }
 
-  const uploadImage = async (file) => {
+const uploadImage = async (file) => {
     if (!file) return null
     const compressedFile = await compressImage(file)
     const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.webp`
-    const { error } = await supabase.storage.from('exam-images').upload(fileName, compressedFile)
+    
+    // ✨ แก้ชื่อตรงนี้เป็น 'exam-public-images' ให้ตรงกับ Supabase ของคุณ
+    const { error } = await supabase.storage.from('exam-public-images').upload(fileName, compressedFile, {
+      contentType: 'image/webp',
+      cacheControl: '3600',
+      upsert: false
+    })
+    
     if (error) throw error
-    const { data: { publicUrl } } = supabase.storage.from('exam-images').getPublicUrl(fileName)
+    // ✨ แก้ชื่อตรงนี้ด้วยครับ
+    const { data: { publicUrl } } = supabase.storage.from('exam-public-images').getPublicUrl(fileName)
     return publicUrl
   }
 
