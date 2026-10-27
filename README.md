@@ -118,3 +118,7 @@ src/
  ├── App.jsx          # จุดศูนย์รวม Routing ของเว็บไซต์
  └── main.jsx         # จุดเริ่มต้น (Entry Point) ของแอปพลิเคชัน
 ```
+###
+รหัส admin
+admin@1
+123456
