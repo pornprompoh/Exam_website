@@ -73,16 +73,25 @@ export default function ExamSession() {
   async function fetchRawQuestions() {
     setLoading(true)
     try {
+      const normalizedCategoryId = typeof categoryId === 'string' ? categoryId.trim() : ''
+      const invalidCategoryId = !normalizedCategoryId ||
+        ['undefined', 'null'].includes(normalizedCategoryId.toLowerCase())
+
+      if (invalidCategoryId) {
+        alert('ไม่พบหมวดหมู่วิชาที่เลือก')
+        return navigate('/', { replace: true })
+      }
+
       const { data, error } = await supabase
         .from('questions')
         .select('*')
-        .eq('category_id', categoryId)
+        .eq('category_id', normalizedCategoryId)
         .eq('is_active', true)
 
       if (error) throw error
       if (!data || data.length === 0) {
         alert('ไม่พบข้อสอบในหมวดหมู่นี้')
-        return navigate('/')
+        return navigate('/', { replace: true })
       }
 
       setAllRawQuestions(data)
