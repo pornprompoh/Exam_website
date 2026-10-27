@@ -15,6 +15,16 @@ const shuffleArray = (array) => {
   return newArray;
 };
 
+const readStoredIds = (key) => {
+  try {
+    const storedValue = JSON.parse(localStorage.getItem(key) || '[]')
+    return Array.isArray(storedValue) ? storedValue : []
+  } catch (error) {
+    console.error(`ไม่สามารถอ่านประวัติข้อสอบจาก LocalStorage (${key}) ได้:`, error)
+    return []
+  }
+}
+
 export default function ExamSession() {
   const { categoryId } = useParams()
   const [searchParams] = useSearchParams()
@@ -127,7 +137,7 @@ export default function ExamSession() {
     }
   }
 
-  const handleStartExamSession = () => {
+  const handleStartExamSession = async () => {
     const maxQ = allRawQuestions.length
     let finalCount = parseInt(customCountInput, 10)
     if (isNaN(finalCount) || finalCount <= 0) finalCount = Math.min(10, maxQ)
@@ -144,9 +154,24 @@ export default function ExamSession() {
     const storageSeenKey = `seen_questions_cat_${categoryId}`
     const storageMistakeKey = `mistake_questions_cat_${categoryId}`
     
-    // ดึงประวัติจาก LocalStorage
-    const seenIds = JSON.parse(localStorage.getItem(storageSeenKey)) || []
-    const mistakeIds = JSON.parse(localStorage.getItem(storageMistakeKey)) || []
+    const seenIds = readStoredIds(storageSeenKey)
+    let mistakeIds = readStoredIds(storageMistakeKey)
+
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      const { data: databaseMistakes, error: mistakeError } = await supabase
+        .from('mistake_bank')
+        .select('question_id')
+        .eq('user_id', session.user.id)
+        .eq('is_resolved', false)
+
+      if (mistakeError) {
+        console.error('ไม่สามารถโหลดประวัติข้อผิดจากฐานข้อมูลได้:', mistakeError.message)
+      } else {
+        mistakeIds = [...new Set(databaseMistakes.map((item) => item.question_id))]
+        localStorage.setItem(storageMistakeKey, JSON.stringify(mistakeIds))
+      }
+    }
 
     // แบ่งกลุ่มข้อสอบ
     const mistakePool = allRawQuestions.filter(q => mistakeIds.includes(q.id))
@@ -184,7 +209,7 @@ export default function ExamSession() {
           ...q, 
           displayOptions: q.options, 
           displayCorrectOption: Number(q.correct_option),
-          originalOptionIndices: [0, 1, 2, 3]
+          originalOptionIndices: q.options?.map((_, index) => index) || []
         }
       }
       
@@ -245,12 +270,12 @@ export default function ExamSession() {
     setSaving(true)
     let totalScore = 0
     const mistakeItems = []
+    const resolvedQuestionIds = []
 
-    // 🌟 เตรียมตัวแปรเพื่อบันทึกประวัติลง LocalStorage
     const storageSeenKey = `seen_questions_cat_${categoryId}`
     const storageMistakeKey = `mistake_questions_cat_${categoryId}`
-    let currentSeenIds = JSON.parse(localStorage.getItem(storageSeenKey)) || []
-    let currentMistakeIds = JSON.parse(localStorage.getItem(storageMistakeKey)) || []
+    let currentSeenIds = readStoredIds(storageSeenKey)
+    let currentMistakeIds = readStoredIds(storageMistakeKey)
 
     questions.forEach((q) => {
       const selectedDisplayIdx = userAnswers[q.id]
@@ -263,8 +288,8 @@ export default function ExamSession() {
 
       if (isCorrect) {
         totalScore += 1
-        // ถ้าตอบถูก ให้ลบข้อนี้ออกจากรายการข้อที่เคยทำผิด
         currentMistakeIds = currentMistakeIds.filter(id => id !== q.id)
+        resolvedQuestionIds.push(q.id)
       } else {
         const originalUserAnswerIdx = selectedDisplayIdx !== undefined 
           ? q.originalOptionIndices[selectedDisplayIdx] 
@@ -276,14 +301,12 @@ export default function ExamSession() {
           is_resolved: false
         })
         
-        // ถ้าตอบผิด ให้เพิ่มข้อนี้เข้าไปในรายการข้อที่เคยทำผิด
         if (!currentMistakeIds.includes(q.id)) {
           currentMistakeIds.push(q.id)
         }
       }
     })
 
-    // บันทึกประวัติอัปเดตกลับลงเครื่อง
     localStorage.setItem(storageSeenKey, JSON.stringify(currentSeenIds))
     localStorage.setItem(storageMistakeKey, JSON.stringify(currentMistakeIds))
 
@@ -305,7 +328,23 @@ export default function ExamSession() {
 
       if (!sessionError && sessionData && mistakeItems.length > 0) {
         const mistakesWithSession = mistakeItems.map(item => ({ ...item, session_id: sessionData.id }))
-        await supabase.from('mistake_bank').insert(mistakesWithSession)
+        const { error: mistakeInsertError } = await supabase
+          .from('mistake_bank')
+          .insert(mistakesWithSession)
+        if (mistakeInsertError) throw mistakeInsertError
+      }
+
+      if (resolvedQuestionIds.length > 0) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          const { error: resolveError } = await supabase
+            .from('mistake_bank')
+            .update({ is_resolved: true })
+            .eq('user_id', session.user.id)
+            .in('question_id', resolvedQuestionIds)
+            .eq('is_resolved', false)
+          if (resolveError) throw resolveError
+        }
       }
     } catch (dbErr) {
       console.error('ไม่สามารถบันทึกประวัติสอบได้:', dbErr.message)

@@ -67,16 +67,44 @@ export default function MistakeBank() {
   async function handleConfirmResolve() {
     if (!modalTarget) return
     const id = modalTarget.id
+    const question = modalTarget.questions
 
     try {
-      const { error } = await supabase
+      let resolveQuery = supabase
         .from('mistake_bank')
         .update({ is_resolved: true })
-        .eq('id', id)
+        .eq('is_resolved', false)
+
+      if (question?.id) {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session) {
+          resolveQuery = resolveQuery
+            .eq('user_id', session.user.id)
+            .eq('question_id', question.id)
+        } else {
+          resolveQuery = resolveQuery.eq('id', id)
+        }
+      } else {
+        resolveQuery = resolveQuery.eq('id', id)
+      }
+
+      const { error } = await resolveQuery
 
       if (error) throw error
       
-      setMistakes((prev) => prev.filter((item) => item.id !== id))
+      setMistakes((prev) => prev.filter((item) => item.questions?.id !== question?.id))
+      if (question?.category_id && question.id) {
+        const storageKey = `mistake_questions_cat_${question.category_id}`
+        try {
+          const storedIds = JSON.parse(localStorage.getItem(storageKey) || '[]')
+          const remainingIds = Array.isArray(storedIds)
+            ? storedIds.filter((questionId) => questionId !== question.id)
+            : []
+          localStorage.setItem(storageKey, JSON.stringify(remainingIds))
+        } catch (storageError) {
+          console.error('ไม่สามารถลบข้อสอบออกจากประวัติการสุ่มในเครื่องได้:', storageError)
+        }
+      }
       setModalTarget(null)
     } catch (err) {
       alert('ไม่สามารถอัปเดตสถานะได้: ' + err.message)
