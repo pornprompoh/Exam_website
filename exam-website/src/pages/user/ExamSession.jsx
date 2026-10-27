@@ -15,16 +15,6 @@ const shuffleArray = (array) => {
   return newArray;
 };
 
-const readStoredIds = (key) => {
-  try {
-    const storedValue = JSON.parse(localStorage.getItem(key) || '[]')
-    return Array.isArray(storedValue) ? storedValue : []
-  } catch (error) {
-    console.error(`ไม่สามารถอ่านประวัติข้อสอบจาก LocalStorage (${key}) ได้:`, error)
-    return []
-  }
-}
-
 export default function ExamSession() {
   const { categoryId } = useParams()
   const [searchParams] = useSearchParams()
@@ -151,25 +141,57 @@ export default function ExamSession() {
     }
 
     // 🌟 ระบบสุ่มแบบอัจฉริยะ (Smart Randomization)
-    const storageSeenKey = `seen_questions_cat_${categoryId}`
-    const storageMistakeKey = `mistake_questions_cat_${categoryId}`
-    
-    const seenIds = readStoredIds(storageSeenKey)
-    let mistakeIds = readStoredIds(storageMistakeKey)
+    let session = null
+    try {
+      const { data } = await supabase.auth.getSession()
+      session = data?.session || null
+    } catch (sessionError) {
+      console.error('ไม่สามารถตรวจสอบ session ได้ ระบบจะเริ่มสอบโดยไม่ใช้ประวัติส่วนตัว:', sessionError)
+    }
+    let seenIds = []
+    let mistakeIds = []
 
-    const { data: { session } } = await supabase.auth.getSession()
-    if (session) {
-      const { data: databaseMistakes, error: mistakeError } = await supabase
+    if (session && allRawQuestions.length > 0) {
+      const questionIds = allRawQuestions.map((question) => question.id)
+      const { data: historyData, error: historyError } = await supabase
+        .from('user_question_history')
+        .select('question_id, seen_count, last_result')
+        .eq('user_id', session.user.id)
+        .in('question_id', questionIds)
+
+      if (historyError) {
+        console.error('ไม่สามารถโหลดประวัติข้อสอบได้ ระบบจะสุ่มจากข้อสอบทั้งหมด:', historyError.message)
+      } else {
+        const historyByQuestionId = new Map(
+          (historyData || []).map((item) => [item.question_id, item])
+        )
+        seenIds = [...historyByQuestionId.entries()]
+          .filter(([, item]) => Number(item.seen_count) > 0)
+          .map(([questionId]) => questionId)
+        mistakeIds = [...historyByQuestionId.entries()]
+          .filter(([, item]) => item.last_result === 'wrong')
+          .map(([questionId]) => questionId)
+      }
+    }
+
+    if (!session) {
+      console.info('ไม่พบ session ผู้ใช้ จึงเริ่มสอบโดยไม่ใช้ประวัติส่วนตัว')
+    }
+
+    /* Keep the detailed mistake bank separate from history; history determines
+       the latest result while mistake_bank stores the answer and explanation. */
+    if (session && mistakeIds.length > 0) {
+      const { data: unresolvedMistakes, error: mistakeError } = await supabase
         .from('mistake_bank')
         .select('question_id')
         .eq('user_id', session.user.id)
         .eq('is_resolved', false)
+        .in('question_id', mistakeIds)
 
       if (mistakeError) {
-        console.error('ไม่สามารถโหลดประวัติข้อผิดจากฐานข้อมูลได้:', mistakeError.message)
+        console.error('ไม่สามารถโหลดรายละเอียดข้อผิดได้ ระบบจะใช้ประวัติผลล่าสุดแทน:', mistakeError.message)
       } else {
-        mistakeIds = [...new Set(databaseMistakes.map((item) => item.question_id))]
-        localStorage.setItem(storageMistakeKey, JSON.stringify(mistakeIds))
+        mistakeIds = [...new Set((unresolvedMistakes || []).map((item) => item.question_id))]
       }
     }
 
@@ -272,23 +294,12 @@ export default function ExamSession() {
     const mistakeItems = []
     const resolvedQuestionIds = []
 
-    const storageSeenKey = `seen_questions_cat_${categoryId}`
-    const storageMistakeKey = `mistake_questions_cat_${categoryId}`
-    let currentSeenIds = readStoredIds(storageSeenKey)
-    let currentMistakeIds = readStoredIds(storageMistakeKey)
-
     questions.forEach((q) => {
       const selectedDisplayIdx = userAnswers[q.id]
       const isCorrect = selectedDisplayIdx !== undefined && selectedDisplayIdx === q.displayCorrectOption
 
-      // บันทึกว่าข้อนี้เคยเห็นแล้ว (Seen)
-      if (!currentSeenIds.includes(q.id)) {
-        currentSeenIds.push(q.id)
-      }
-
       if (isCorrect) {
         totalScore += 1
-        currentMistakeIds = currentMistakeIds.filter(id => id !== q.id)
         resolvedQuestionIds.push(q.id)
       } else {
         const originalUserAnswerIdx = selectedDisplayIdx !== undefined 
@@ -301,14 +312,8 @@ export default function ExamSession() {
           is_resolved: false
         })
         
-        if (!currentMistakeIds.includes(q.id)) {
-          currentMistakeIds.push(q.id)
-        }
       }
     })
-
-    localStorage.setItem(storageSeenKey, JSON.stringify(currentSeenIds))
-    localStorage.setItem(storageMistakeKey, JSON.stringify(currentMistakeIds))
 
     setScore(totalScore)
     setExamPhase('submitted')
@@ -326,6 +331,43 @@ export default function ExamSession() {
         .select()
         .single()
 
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) {
+        const questionIds = questions.map((question) => question.id)
+        const { data: existingHistory, error: historyReadError } = await supabase
+          .from('user_question_history')
+          .select('question_id, seen_count')
+          .eq('user_id', session.user.id)
+          .in('question_id', questionIds)
+
+        if (historyReadError) throw historyReadError
+
+        const existingCountByQuestionId = new Map(
+          (existingHistory || []).map((item) => [item.question_id, Number(item.seen_count) || 0])
+        )
+        const historyRows = questions.map((question) => {
+          const selectedDisplayIdx = userAnswers[question.id]
+          const result = selectedDisplayIdx === undefined
+            ? 'unanswered'
+            : selectedDisplayIdx === question.displayCorrectOption
+              ? 'correct'
+              : 'wrong'
+
+          return {
+            user_id: session.user.id,
+            question_id: question.id,
+            seen_count: (existingCountByQuestionId.get(question.id) || 0) + 1,
+            last_seen_at: new Date().toISOString(),
+            last_result: result
+          }
+        })
+
+        const { error: historyUpsertError } = await supabase
+          .from('user_question_history')
+          .upsert(historyRows, { onConflict: 'user_id,question_id' })
+        if (historyUpsertError) throw historyUpsertError
+      }
+
       if (!sessionError && sessionData && mistakeItems.length > 0) {
         const mistakesWithSession = mistakeItems.map(item => ({ ...item, session_id: sessionData.id }))
         const { error: mistakeInsertError } = await supabase
@@ -335,14 +377,12 @@ export default function ExamSession() {
       }
 
       if (resolvedQuestionIds.length > 0) {
-        const { data: { session } } = await supabase.auth.getSession()
         if (session) {
           const { error: resolveError } = await supabase
-            .from('mistake_bank')
-            .update({ is_resolved: true })
+            .from('user_question_history')
+            .update({ last_result: 'correct', last_seen_at: new Date().toISOString() })
             .eq('user_id', session.user.id)
             .in('question_id', resolvedQuestionIds)
-            .eq('is_resolved', false)
           if (resolveError) throw resolveError
         }
       }
