@@ -55,6 +55,26 @@ export default function Login() {
     setConfirmPassword('')
   }
 
+  const handleGoogleSignIn = async () => {
+    setErrorMsg('')
+    setSuccessMsg('')
+    setLoading(true)
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin
+        }
+      })
+
+      if (error) throw error
+    } catch (err) {
+      setErrorMsg(err.message || 'ไม่สามารถเข้าสู่ระบบด้วย Google ได้ กรุณาลองใหม่อีกครั้ง')
+      setLoading(false)
+    }
+  }
+
   const handleAuth = async (e) => {
     e.preventDefault()
     setErrorMsg('')
@@ -342,6 +362,42 @@ export default function Login() {
             )}
           </button>
         </form>
+
+        {activeTab === 'login' && (
+          <div className="mt-5 animate-fadeIn">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-[11px] font-bold text-slate-400">หรือ</span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full py-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 font-black rounded-2xl text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
+            >
+              {loading ? (
+                <span>กำลังเชื่อมต่อกับ Google...</span>
+              ) : (
+                <>
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path fill="#4285F4" d="M21.35 12.27c0-.73-.07-1.43-.21-2.1H12v3.98h5.24a4.48 4.48 0 0 1-1.94 2.94v2.45h3.14c1.84-1.69 2.91-4.18 2.91-7.27Z" />
+                    <path fill="#34A853" d="M12 21.67c2.63 0 4.84-.87 6.45-2.36l-3.14-2.45c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.53A9.74 9.74 0 0 0 12 21.67Z" />
+                    <path fill="#FBBC05" d="M6.54 13.75a5.85 5.85 0 0 1 0-3.5V7.72H3.3a9.74 9.74 0 0 0 0 8.56l3.24-2.53Z" />
+                    <path fill="#EA4335" d="M12 6.22c1.43 0 2.71.49 3.72 1.46l2.79-2.79C16.84 3.3 14.63 2.33 12 2.33a9.74 9.74 0 0 0-8.7 5.39l3.24 2.53C7.31 7.94 9.46 6.22 12 6.22Z" />
+                  </svg>
+                  <span>เข้าสู่ระบบด้วย Google</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {activeTab === 'forgot' && (
           <div className="mt-8 text-center animate-fadeIn">
