@@ -67,12 +67,29 @@ function normalizeQuestion(item, index) {
   }
 }
 
-export async function generateExamQuestions({ files, questionCount, categoryName, promptHint, onProgress }) {
+export async function generateExamQuestions({ files, questionCount, categoryName, promptHint, difficulty = 'balanced', language = 'th_tech', distributionMode = 'importance', onProgress }) {
   if (!files?.length) throw new Error('กรุณาเลือกไฟล์ PDF หรือ TXT อย่างน้อย 1 ไฟล์')
   if (files.length > MAX_FILES) throw new Error(`เลือกไฟล์ได้ไม่เกิน ${MAX_FILES} ไฟล์ต่อครั้ง`)
   if (!Number.isInteger(Number(questionCount)) || Number(questionCount) < 1 || Number(questionCount) > 100) {
     throw new Error('จำนวนข้อสอบต้องอยู่ระหว่าง 1 ถึง 100 ข้อ')
   }
+  const difficultyDirectives = {
+    balanced: 'ใช้สัดส่วนมาตรฐาน: ง่าย 30% (Recall/Definition), ปานกลาง 50% (Understanding/Application), ยาก 20% (Analysis/Problem-Solving)',
+    easy: 'เน้นการจำและความเข้าใจพื้นฐาน (Recall/Definition) หลีกเลี่ยงการอนุมานหลายขั้นตอน',
+    medium: 'เน้นความเข้าใจและการประยุกต์ใช้ (Understanding/Application) กับเนื้อหาในเอกสาร',
+    hard: 'เน้นการวิเคราะห์ การแก้ปัญหา และกรณีศึกษา (Analysis/Problem-Solving) โดยต้องใช้เหตุผลจากเนื้อหา'
+  }
+  const languageDirectives = {
+    th_tech: 'เขียนโจทย์ ตัวเลือก เฉลย และคำอธิบายเป็นภาษาไทย โดยคงศัพท์เทคนิคภาษาอังกฤษไว้ในวงเล็บหลังคำแปลเมื่อเหมาะสม',
+    th: 'เขียนโจทย์ ตัวเลือก เฉลย และคำอธิบายเป็นภาษาไทยล้วน หลีกเลี่ยงภาษาอังกฤษยกเว้นชื่อเฉพาะที่จำเป็น',
+    en: 'เขียนโจทย์ ตัวเลือก เฉลย และคำอธิบายเป็นภาษาอังกฤษทั้งหมด',
+    original: 'ใช้ภาษาตามภาษาต้นฉบับของเอกสารแต่ละส่วนอย่างเคร่งครัด'
+  }
+  if (!difficultyDirectives[difficulty] || !languageDirectives[language] || !['even', 'importance'].includes(distributionMode)) {
+    throw new Error('รูปแบบระดับความยากหรือภาษาของข้อสอบไม่ถูกต้อง')
+  }
+  const evenDistribution = distributionMode === 'even' && files.length > 1
+  const quotas = files.map((file, index) => `${file.name}: ${Math.floor(Number(questionCount) / files.length) + (index < Number(questionCount) % files.length ? 1 : 0)} ข้อ`)
 
   const sourceParts = []
   for (let index = 0; index < files.length; index += 1) {
@@ -87,6 +104,9 @@ export async function generateExamQuestions({ files, questionCount, categoryName
 ตอบกลับเป็น JSON array เท่านั้น ห้ามมี Markdown หรือข้อความอื่น
 แต่ละข้อห้ามซ้ำกัน ต้องมี options 4 ตัวเลือก และ correct_answer เป็นเลข 0-3
 source_topic ต้องอ้างอิงชื่อไฟล์และหน้า (ถ้ามี) รวมถึงหัวข้อที่เกี่ยวข้อง เพื่อให้ผู้ตรวจสอบย้อนกลับได้
+ระดับพุทธิพิสัยและความยาก: ${difficultyDirectives[difficulty]}
+ภาษาผลลัพธ์: ${languageDirectives[language]}
+${evenDistribution ? `การกระจายข้อสอบ: กระจายอย่างเท่าเทียมตามโควตาต่อไฟล์ดังนี้: ${quotas.join(', ')} ห้ามละเลยไฟล์ใดไฟล์หนึ่ง และให้ source_topic ระบุไฟล์ต้นทางที่ถูกต้อง` : 'การกระจายข้อสอบ: ให้น้ำหนักตามความหนาแน่น ความสำคัญ และสาระหลักของเนื้อหาโดยรวม ไม่จำเป็นต้องแบ่งเท่ากันระหว่างไฟล์'}
 ${promptHint ? `คำแนะนำเพิ่มเติมจากผู้ดูแล: ${promptHint}` : ''}
 
 รูปแบบที่ต้องตอบ:
@@ -102,6 +122,11 @@ ${sourceParts.join('\n\n')}`
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        systemInstruction: {
+          parts: [{
+            text: 'คุณเป็น Assessment Engine ระดับสถาบันการศึกษา ปฏิบัติตามระดับพุทธิพิสัย ภาษา การกระจายเนื้อหา และรูปแบบ JSON ที่ผู้ใช้ระบุอย่างเคร่งครัด ตรวจสอบว่าแต่ละข้อมีตัวเลือก 4 ข้อและเฉลยถูกต้องจากเอกสารเท่านั้น'
+          }]
+        },
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { responseMimeType: 'application/json', temperature: 0.3 }
       })
