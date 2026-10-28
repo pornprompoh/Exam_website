@@ -65,6 +65,30 @@ function ScrollRestoration() {
   return null
 }
 
+function AppRoutes() {
+  const { pathname } = useLocation()
+  const hasNavbar = pathname !== '/login'
+
+  return (
+    <>
+      <ScrollRestoration />
+      <div className={hasNavbar ? 'pt-16' : ''}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Home />} />
+          <Route path="/exam/:categoryId" element={<ExamSession />} />
+          <Route path="/mistakes" element={<MistakeBank />} />
+          <Route path="/mistake-bank" element={<MistakeBank />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/admin/*" element={<ProtectedAdminRoute />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </>
+  )
+}
+
 function ProtectedAdminRoute() {
   const [loading, setLoading] = useState(true)
   const [userRole, setUserRole] = useState('student')
@@ -170,18 +194,7 @@ export default function App() {
       {/* 🌟 3. ครอบ Router ทั้งหมดด้วย ModalProvider เป็นอันเสร็จสมบูรณ์ */}
       <ThemeProvider>
         <ModalProvider>
-          <ScrollRestoration />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Home />} />
-            <Route path="/exam/:categoryId" element={<ExamSession />} />
-            <Route path="/mistakes" element={<MistakeBank />} />
-            <Route path="/mistake-bank" element={<MistakeBank />} />
-            <Route path="/analytics" element={<Analytics />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/admin/*" element={<ProtectedAdminRoute />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+          <AppRoutes />
         </ModalProvider>
       </ThemeProvider>
     </Router>
