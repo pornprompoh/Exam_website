@@ -67,12 +67,19 @@ export default function Home() {
 
       if (catErr) throw catErr
 
-      const { data: questionsData, error: qErr } = await supabase
-        .from('questions')
-        .select('id, category_id')
-        .eq('is_active', true)
+      const questionResults = await Promise.all(
+        (catsData || []).map(async (category) => {
+          const { data, error } = await supabase
+            .from('questions')
+            .select('id, category_id')
+            .eq('category_id', category.id)
+            .eq('is_active', true)
 
-      if (qErr) throw qErr
+          if (error) throw error
+          return data || []
+        })
+      )
+      const questionsData = questionResults.flat()
 
       const { data: { session } } = await supabase.auth.getSession()
       let historyData = []
@@ -81,12 +88,12 @@ export default function Home() {
           .from('user_question_history')
           .select('question_id, seen_count')
           .eq('user_id', session.user.id)
-          .in('question_id', questionsData.map((question) => question.id))
 
         if (historyErr) {
           console.error('ไม่สามารถโหลดประวัติข้อสอบได้ จะแสดงจำนวนข้อสอบทั้งหมดแทน:', historyErr.message)
         } else {
-          historyData = data || []
+          const activeQuestionIds = new Set(questionsData.map((question) => question.id))
+          historyData = (data || []).filter((item) => activeQuestionIds.has(item.question_id))
         }
       }
 
@@ -259,13 +266,13 @@ export default function Home() {
                   className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200/80 shadow-xs hover:shadow-md hover:border-slate-300 transition-all duration-300 flex flex-col justify-between space-y-6 group"
                 >
                   <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <span className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shrink-0 font-bold border border-indigo-100 group-hover:scale-105 transition-transform">
                           📖
                         </span>
                         <div className="min-w-0">
-                          <h3 className="text-base sm:text-lg font-black text-slate-900 truncate group-hover:text-indigo-600 transition-colors">
+                          <h3 className="text-base sm:text-lg font-black text-slate-900 break-words [word-break:break-word] group-hover:text-indigo-600 transition-colors">
                             {cat.name}
                           </h3>
                           <span className="text-[11px] font-bold text-slate-400 block mt-0.5">
@@ -274,6 +281,9 @@ export default function Home() {
                         </div>
                       </div>
 
+                    </div>
+
+                    <div className="flex justify-end -mt-1">
                       {hasQuestions ? (
                         <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 shadow-2xs">
                           ● พร้อมสอบ
@@ -290,29 +300,31 @@ export default function Home() {
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 flex items-center justify-between gap-4 pl-14">
-                    <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
-                      <span>📝 มีข้อสอบ</span>
-                      <strong className="text-slate-900 font-mono text-sm bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
-                        {cat.questionCount}
-                      </strong>
-                      <span>ข้อ</span>
+                  <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pl-0 sm:pl-14">
+                    <div className="flex items-center justify-between gap-3 min-w-0">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 whitespace-nowrap">
+                        <span>📝 มีข้อสอบ</span>
+                        <strong className="text-slate-900 font-mono text-sm bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+                          {cat.questionCount}
+                        </strong>
+                        <span>ข้อ</span>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-400 whitespace-nowrap">
+                        ทำแล้ว {cat.seenQuestionCount} / เหลือ {cat.questionCount - cat.seenQuestionCount}
+                      </span>
                     </div>
-                    <span className="text-[11px] font-bold text-slate-400">
-                      ทำแล้ว {cat.seenQuestionCount} / เหลือ {cat.questionCount - cat.seenQuestionCount}
-                    </span>
 
                     {hasQuestions ? (
                       <Link
                         to={`/exam/${cat.id}`}
-                        className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center gap-1.5 shrink-0"
+                        className="w-full sm:w-auto justify-center px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center gap-1.5 shrink-0"
                       >
                         <span>🚀</span><span>เริ่มทำข้อสอบ</span>
                       </Link>
                     ) : (
                       <button
                         disabled
-                        className="px-4 py-2.5 bg-slate-100 text-slate-400 font-bold rounded-xl text-xs cursor-not-allowed border border-slate-200 shrink-0"
+                        className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 text-slate-400 font-bold rounded-xl text-xs cursor-not-allowed border border-slate-200 shrink-0"
                       >
                         ยังไม่มีข้อสอบ
                       </button>
