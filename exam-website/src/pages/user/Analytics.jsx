@@ -145,7 +145,7 @@ export default function Analytics() {
                 </h2>
               </div>
 
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 min-w-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5 min-w-0">
                 {/* KPI 1: จำนวนข้อที่ทำไป */}
                 <div className="bg-white p-4 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm flex flex-col justify-between min-w-0">
                   <div className="flex items-center justify-between gap-1 mb-2">

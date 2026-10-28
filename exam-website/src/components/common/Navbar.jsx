@@ -10,8 +10,8 @@ const userLinks = [
 ]
 
 const adminLinks = [
-  { path: '/admin/questions', label: 'จัดการข้อสอบ', icon: '📝' },
   { path: '/admin/categories', label: 'จัดการหมวดหมู่', icon: '📁' },
+  { path: '/admin/questions', label: 'จัดการข้อสอบ', icon: '📝' },
   { path: '/admin/users', label: 'จัดการผู้ใช้', icon: '👥', adminOnly: true }
 ]
 

@@ -426,12 +426,12 @@ export default function QuestionManager() {
           </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto shrink-0">
+        <div className="grid grid-cols-2 sm:flex items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
           {categories.length > 0 ? (
             <select
               value={selectedCat}
               onChange={(e) => handleCategoryChange(e.target.value)}
-              className="flex-1 sm:w-56 px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+              className="col-span-2 sm:col-auto flex-1 sm:w-56 px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
             >
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>📖 {cat.name}</option>
@@ -443,7 +443,7 @@ export default function QuestionManager() {
             </div>
           )}
 
-          <button onClick={handleOpenCreateForm} disabled={categories.length === 0} className="flex-1 sm:flex-initial px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 text-white rounded-2xl text-sm font-bold transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 shrink-0 h-full">
+          <button onClick={handleOpenCreateForm} disabled={categories.length === 0} className="flex-1 sm:flex-initial px-3 sm:px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 text-white rounded-2xl text-sm font-bold transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 shrink-0 h-full">
             <span>➕</span><span>สร้างโจทย์ใหม่</span>
           </button>
 
