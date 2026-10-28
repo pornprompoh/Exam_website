@@ -1,5 +1,64 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+  }
+
+  body {
+    background: #f8fafc;
+    color: #1e293b;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  html.dark body {
+    background: #0f172a;
+    color: #e2e8f0;
+  }
+}
+
+@layer utilities {
+  .dark .bg-white { background-color: #1e293b; }
+  .dark .bg-white\/80 { background-color: rgb(15 23 42 / 0.88); }
+  .dark .bg-white\/95 { background-color: rgb(15 23 42 / 0.96); }
+  .dark .bg-slate-50 { background-color: #1e293b; }
+  .dark .bg-slate-50\/70 { background-color: rgb(15 23 42 / 0.72); }
+  .dark .bg-slate-50\/80 { background-color: rgb(30 41 59 / 0.82); }
+  .dark .bg-slate-100 { background-color: #334155; }
+  .dark .bg-slate-100\/60 { background-color: rgb(30 41 59 / 0.72); }
+  .dark .bg-slate-100\/80 { background-color: rgb(30 41 59 / 0.86); }
+  .dark .bg-slate-200 { background-color: #475569; }
+  .dark .bg-slate-900\/60 { background-color: rgb(15 23 42 / 0.78); }
+  .dark .border-slate-100 { border-color: #334155; }
+  .dark .border-slate-200,
+  .dark .border-slate-200\/60,
+  .dark .border-slate-200\/80 { border-color: #475569; }
+  .dark .border-slate-300 { border-color: #64748b; }
+  .dark .text-slate-900 { color: #f8fafc; }
+  .dark .text-slate-800 { color: #e2e8f0; }
+  .dark .text-slate-700 { color: #cbd5e1; }
+  .dark .text-slate-600 { color: #cbd5e1; }
+  .dark .text-slate-500 { color: #94a3b8; }
+  .dark .text-slate-400 { color: #94a3b8; }
+  .dark .placeholder-slate-400::placeholder { color: #94a3b8; }
+  .dark input,
+  .dark select,
+  .dark textarea { color-scheme: dark; }
+  .dark input.bg-white,
+  .dark select.bg-white,
+  .dark textarea.bg-white { background-color: #1e293b; }
+  .dark .hover\:bg-white:hover { background-color: #334155; }
+  .dark .hover\:bg-slate-50:hover { background-color: #334155; }
+  .dark .hover\:bg-slate-100:hover { background-color: #475569; }
+  .dark .hover\:bg-slate-200:hover { background-color: #64748b; }
+}
+
 /* 🌟 1. ป้องกันจอขยับเวลาเปลี่ยนหน้า */
 @layer base {
   html {

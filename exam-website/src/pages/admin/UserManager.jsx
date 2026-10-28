@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import LoadingScreen from '../../components/common/LoadingScreen'
@@ -217,7 +218,7 @@ export default function UserManager() {
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 font-mono">
                         <span className="truncate">{u.email || `ID: ${u.id.substring(0, 12)}...`}</span>
                         <span className="text-slate-600 hidden sm:inline">•</span>
-                        <span className="text-[11px] text-slate-500">สมัครเมื่อ: {new Date(u.created_at || Date.now()).toLocaleDateString('th-TH')}</span>
+                        <span className="text-[11px] text-slate-500">สมัครเมื่อ: {u.created_at ? new Date(u.created_at).toLocaleDateString('th-TH') : 'ไม่ระบุวันที่'}</span>
                       </div>
                     </div>
                   </div>

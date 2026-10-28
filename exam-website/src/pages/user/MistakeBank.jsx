@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/immutability */
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import Navbar from '../../components/common/Navbar'

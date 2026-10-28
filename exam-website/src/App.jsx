@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
 import Login from './pages/auth/Login'
@@ -12,9 +12,10 @@ import CategoryManager from './pages/admin/CategoryManager'
 import QuestionManager from './pages/admin/QuestionManager'
 import UserManager from './pages/admin/UserManager'
 
-import AdminNavbar from './components/admin/AdminNavbar'
+import Navbar from './components/common/Navbar'
 // 🌟 1. นำเข้า ModalProvider และ useModal
 import { ModalProvider, useModal } from './context/ModalContext'
+import { ThemeProvider } from './context/ThemeContext'
 
 function ProtectedAdminRoute() {
   const [loading, setLoading] = useState(true)
@@ -54,7 +55,8 @@ function ProtectedAdminRoute() {
 }
 
 function AdminLayout({ userRole }) {
-  const [activeTab, setActiveTab] = useState('categories')
+  const location = useLocation()
+  const activeTab = location.pathname.split('/')[2] || 'categories'
   const isFullAdmin = userRole === 'admin'
   
   // 🌟 2. เรียกใช้ useModal แทนการสร้าง useState บวมๆ ใน App.jsx
@@ -75,16 +77,19 @@ function AdminLayout({ userRole }) {
     })
   }
 
+  if (location.pathname === '/admin' || (activeTab !== 'categories' && activeTab !== 'questions' && activeTab !== 'users')) {
+    return <Navigate to="/admin/categories" replace />
+  }
+
+  if (activeTab === 'users' && !isFullAdmin) {
+    return <Navigate to="/admin/categories" replace />
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 selection:bg-indigo-500 selection:text-white overflow-x-hidden">
       
       {/* 🌟 สั่งเปิด Modal ผ่าน Global State เรียบร้อย ไร้โค้ดรกๆ ใน App.jsx */}
-      <AdminNavbar 
-        activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
-        userRole={userRole} 
-        onLogoutClick={handleTriggerLogout} 
-      />
+      <Navbar onLogoutClick={handleTriggerLogout} />
 
       <div className="bg-slate-900/60 border-b border-slate-800/80 py-8 sm:py-10 px-4 sm:px-6">
         <div className="max-w-7xl mx-auto">
@@ -115,18 +120,21 @@ export default function App() {
   return (
     <Router>
       {/* 🌟 3. ครอบ Router ทั้งหมดด้วย ModalProvider เป็นอันเสร็จสมบูรณ์ */}
-      <ModalProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<Home />} />
-          <Route path="/exam/:categoryId" element={<ExamSession />} />
-          <Route path="/mistakes" element={<MistakeBank />} />
-          <Route path="/analytics" element={<Analytics />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/admin" element={<ProtectedAdminRoute />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </ModalProvider>
+      <ThemeProvider>
+        <ModalProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/exam/:categoryId" element={<ExamSession />} />
+            <Route path="/mistakes" element={<MistakeBank />} />
+            <Route path="/mistake-bank" element={<MistakeBank />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/admin/*" element={<ProtectedAdminRoute />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </ModalProvider>
+      </ThemeProvider>
     </Router>
   )
 }

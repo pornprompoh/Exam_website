@@ -1,5 +1,3 @@
-import React from 'react'
-
 export default function LoadingScreen({ text = 'กำลังจัดเตรียมข้อมูล กรุณารอสักครู่...' }) {
   return (
     <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 font-sans text-center">

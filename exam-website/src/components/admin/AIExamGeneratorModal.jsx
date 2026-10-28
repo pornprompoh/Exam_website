@@ -2,11 +2,22 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { generateExamQuestions } from '../../lib/aiService'
 
+const promptPresets = [
+  'หลีกเลี่ยงข้อถูกทุกข้อ/ผิดทุกข้อ',
+  'สร้างตัวลวงที่ใกล้เคียงความจริง',
+  'เน้นโจทย์แนวสถานการณ์สมมติ',
+  'เน้นจุดสำคัญที่น่าจะออกสอบบ่อย',
+  'มีเฉลยอธิบายละเอียดทุกตัวเลือก'
+]
+
 export default function AIExamGeneratorModal({ isOpen, onClose, categories, categoryId, currentUserId, onSuccess, onNotify }) {
   const [selectedCategory, setSelectedCategory] = useState(categoryId || categories?.[0]?.id || '')
   const [files, setFiles] = useState([])
   const [questionCount, setQuestionCount] = useState(10)
   const [promptHint, setPromptHint] = useState('')
+  const [difficulty, setDifficulty] = useState('balanced')
+  const [language, setLanguage] = useState('th_tech')
+  const [distributionMode, setDistributionMode] = useState('importance')
   const [questions, setQuestions] = useState([])
   const [step, setStep] = useState('setup')
   const [loading, setLoading] = useState(false)
@@ -27,6 +38,9 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
         questionCount,
         categoryName: selectedCategoryName,
         promptHint,
+        difficulty,
+        language,
+        distributionMode,
         onProgress: setProgress
       })
       setQuestions(generated)
@@ -87,6 +101,9 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
     setFiles([])
     setQuestions([])
     setPromptHint('')
+    setDifficulty('balanced')
+    setLanguage('th_tech')
+    setDistributionMode('importance')
     setStep('setup')
     setProgress('')
     onClose()
@@ -124,9 +141,60 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
                     <input type="number" min="1" max="100" value={questionCount} onChange={(event) => setQuestionCount(event.target.value)} required className="mt-2 w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-sm text-white" />
                   </label>
                 </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="text-xs font-bold text-slate-300">ระดับความยาก
+                    <select value={difficulty} onChange={(event) => setDifficulty(event.target.value)} className="mt-2 w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-sm text-white">
+                      <option value="balanced">สมดุลมาตรฐาน (ง่าย 30% / ปานกลาง 50% / ยาก 20%)</option>
+                      <option value="easy">ง่าย - ความจำ/พื้นฐาน (Recall/Definition)</option>
+                      <option value="medium">ปานกลาง - ความเข้าใจ/ประยุกต์ใช้ (Application)</option>
+                      <option value="hard">ยาก - วิเคราะห์/แก้ปัญหา (Analytical/Problem-Solving)</option>
+                    </select>
+                  </label>
+                  <label className="text-xs font-bold text-slate-300">ภาษาของข้อสอบ
+                    <select value={language} onChange={(event) => setLanguage(event.target.value)} className="mt-2 w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-sm text-white">
+                      <option value="th_tech">ไทย (คงศัพท์เทคนิคภาษาอังกฤษในวงเล็บ)</option>
+                      <option value="th">ภาษาไทยล้วน</option>
+                      <option value="en">ภาษาอังกฤษล้วน (English)</option>
+                      <option value="original">ตามภาษาต้นฉบับของเอกสาร</option>
+                    </select>
+                  </label>
+                </div>
+                {files.length > 1 && (
+                  <fieldset className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                    <legend className="px-1 text-xs font-bold text-slate-300">การกระจายข้อสอบ</legend>
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-300">
+                        <input type="radio" name="distribution-mode" value="even" checked={distributionMode === 'even'} onChange={(event) => setDistributionMode(event.target.value)} className="mt-0.5 accent-indigo-500" />
+                        <span><strong className="text-white">กระจายเท่าๆ กัน (Evenly Distributed)</strong><br />แบ่งโควตาเฉลี่ยตามจำนวนไฟล์</span>
+                      </label>
+                      <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-300">
+                        <input type="radio" name="distribution-mode" value="importance" checked={distributionMode === 'importance'} onChange={(event) => setDistributionMode(event.target.value)} className="mt-0.5 accent-indigo-500" />
+                        <span><strong className="text-white">ตามความสำคัญ (Importance-based)</strong><br />ให้น้ำหนักตามเนื้อหาและจุดสำคัญ</span>
+                      </label>
+                    </div>
+                  </fieldset>
+                )}
                 <label className="block text-xs font-bold text-slate-300">Prompt Hint เพิ่มเติม (ไม่บังคับ)
                   <textarea value={promptHint} onChange={(event) => setPromptHint(event.target.value)} rows="4" placeholder="เช่น เน้นความเข้าใจเชิงวิเคราะห์ ระดับยาก..." className="mt-2 w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-sm text-white placeholder-slate-600" />
                 </label>
+                <div className="flex flex-wrap gap-2">
+                  {promptPresets.map((preset) => {
+                    const isSelected = promptHint.split('\n').includes(preset)
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setPromptHint((current) => {
+                          const lines = current.split('\n').filter(Boolean)
+                          return isSelected ? lines.filter((line) => line !== preset).join('\n') : [...lines, preset].join('\n')
+                        })}
+                        className={`rounded-full border px-3 py-1.5 text-xs transition-colors cursor-pointer ${isSelected ? 'border-indigo-400 bg-indigo-500/20 text-indigo-200' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-indigo-500 hover:text-white'}`}
+                      >
+                        {isSelected ? '✓ ' : '+ '}{preset}
+                      </button>
+                    )
+                  })}
+                </div>
                 {loading && <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4 text-sm text-indigo-200">⏳ {progress || 'กำลังประมวลผล...'}</div>}
                 <button type="submit" disabled={loading} className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-3 font-bold text-white disabled:opacity-50 cursor-pointer">{loading ? 'กำลังสร้างข้อสอบ...' : '✨ สร้างข้อสอบด้วย AI'}</button>
               </form>

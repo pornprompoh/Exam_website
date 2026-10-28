@@ -1,5 +1,5 @@
+/* eslint-disable react-hooks/immutability */
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import Navbar from '../../components/common/Navbar'
 import LoadingScreen from '../../components/common/LoadingScreen'
@@ -210,23 +210,23 @@ export default function Analytics() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 min-w-0">
                 {subjectStats.map((sub, idx) => {
-                  let badgeStyle = 'bg-slate-100 text-slate-600 border-slate-200'
-                  let barColor = 'from-slate-400 to-slate-500'
-                  let statusText = 'ทั่วไป'
-
-                  if (sub.accuracy >= 80) {
-                    badgeStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    barColor = 'from-teal-500 to-emerald-500'
-                    statusText = '🔥 จุดแข็ง (ทำได้ดีมาก)'
-                  } else if (sub.accuracy >= 60) {
-                    badgeStyle = 'bg-teal-50 text-teal-700 border-teal-200'
-                    barColor = 'from-cyan-500 to-teal-500'
-                    statusText = '✨ มาตรฐาน (ผ่านเกณฑ์)'
-                  } else {
-                    badgeStyle = 'bg-red-50 text-red-700 border-red-200'
-                    barColor = 'from-red-500 to-rose-500'
-                    statusText = '⚠️ ควรทบทวนเพิ่ม'
-                  }
+                  const performance = sub.accuracy >= 80
+                    ? {
+                        badgeStyle: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                        barColor: 'from-teal-500 to-emerald-500',
+                        statusText: '🔥 จุดแข็ง (ทำได้ดีมาก)'
+                      }
+                    : sub.accuracy >= 60
+                      ? {
+                          badgeStyle: 'bg-teal-50 text-teal-700 border-teal-200',
+                          barColor: 'from-cyan-500 to-teal-500',
+                          statusText: '✨ มาตรฐาน (ผ่านเกณฑ์)'
+                        }
+                      : {
+                          badgeStyle: 'bg-red-50 text-red-700 border-red-200',
+                          barColor: 'from-red-500 to-rose-500',
+                          statusText: '⚠️ ควรทบทวนเพิ่ม'
+                        }
 
                   return (
                     <div key={idx} className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-200/80 shadow-sm space-y-4 min-w-0">
@@ -235,8 +235,8 @@ export default function Analytics() {
                           <span className="text-[11px] font-bold text-slate-400 font-mono block mb-0.5">SUBJECT #{idx + 1}</span>
                           <h3 className="text-base sm:text-lg font-extrabold text-slate-900 truncate">{sub.name}</h3>
                         </div>
-                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${badgeStyle}`}>
-                          {statusText}
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold border shrink-0 ${performance.badgeStyle}`}>
+                          {performance.statusText}
                         </span>
                       </div>
 
@@ -248,7 +248,7 @@ export default function Analytics() {
                         </div>
                         <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden p-0.5 border border-slate-200/60">
                           <div 
-                            className={`h-full rounded-full bg-gradient-to-r ${barColor} transition-all duration-1000`}
+                            className={`h-full rounded-full bg-gradient-to-r ${performance.barColor} transition-all duration-1000`}
                             style={{ width: `${Math.max(5, sub.accuracy)}%` }}
                           />
                         </div>

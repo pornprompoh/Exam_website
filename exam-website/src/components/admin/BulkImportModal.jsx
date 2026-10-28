@@ -32,7 +32,8 @@ EXP: [พิมพ์คำอธิบายเฉลยหากมี ถ้�
       await navigator.clipboard.writeText(MAGIC_PROMPT)
       setCopyPromptText('✅ คัดลอกคำสั่งเรียบร้อยแล้ว!')
       setTimeout(() => setCopyPromptText('📋 คัดลอกคำสั่งสำหรับใช้กับ AI'), 2500)
-    } catch (err) {
+    } catch (error) {
+      console.error('Copy prompt failed:', error)
       showModal({
         type: 'warning',
         theme: 'dark',
