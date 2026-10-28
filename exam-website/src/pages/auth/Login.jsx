@@ -164,23 +164,23 @@ export default function Login() {
   }
 
   return (
-    <div className="h-dvh w-full bg-slate-100 flex items-center justify-center p-3 sm:p-5 selection:bg-indigo-500 selection:text-white relative overflow-hidden">
+    <div className="h-dvh w-full bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-3 sm:p-5 selection:bg-indigo-500 selection:text-white relative overflow-hidden transition-colors duration-300">
       
       <div className="absolute top-[-10%] left-[-10%] w-[30rem] h-[30rem] bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="w-full max-w-[420px] max-h-full bg-white/90 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl shadow-slate-300/50 border border-white p-5 sm:p-8 relative z-10 animate-fadeIn">
+      <div className="w-full max-w-[420px] max-h-full bg-white dark:bg-slate-900 backdrop-blur-xl rounded-2xl shadow-xl shadow-indigo-100/40 dark:shadow-none border border-slate-100 dark:border-slate-800 p-5 sm:p-8 relative z-10 animate-fadeIn transition-colors duration-300">
         
         <div className="text-center mb-5 sm:mb-6">
           <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-lg shadow-indigo-500/30 mx-auto mb-3 hover:scale-105 transition-transform cursor-default">
             {activeTab === 'forgot' ? '🔐' : activeTab === 'update-password' ? '🔑' : '💡'}
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mb-1">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-1">
             {activeTab === 'forgot' ? 'กู้คืนรหัสผ่าน' : activeTab === 'update-password' ? 'ตั้งรหัสผ่านใหม่' : (
               <>EXAM<span className="text-indigo-600">BANK</span></>
             )}
           </h1>
-          <p className="text-[11px] sm:text-sm font-bold text-slate-500">
+          <p className="text-[11px] sm:text-sm font-medium text-slate-500 dark:text-slate-400">
             {activeTab === 'forgot' 
               ? 'กรอกอีเมลของคุณเพื่อรับลิงก์ตั้งรหัสผ่านใหม่' 
               : activeTab === 'update-password'
@@ -190,14 +190,14 @@ export default function Login() {
         </div>
 
         {activeTab !== 'forgot' && activeTab !== 'update-password' && (
-          <div className="flex p-1 bg-slate-100 rounded-2xl mb-5 border border-slate-200/60 shadow-inner">
+          <div className="flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl mb-5 border border-slate-200 dark:border-slate-700 shadow-inner">
             <button
               type="button"
               onClick={() => handleTabChange('login')}
               className={`flex-1 py-2.5 text-xs sm:text-sm font-black rounded-xl transition-all cursor-pointer ${
                 activeTab === 'login' 
-                  ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/50' 
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
               }`}
             >
               เข้าสู่ระบบ
@@ -207,8 +207,8 @@ export default function Login() {
               onClick={() => handleTabChange('register')}
               className={`flex-1 py-2.5 text-xs sm:text-sm font-black rounded-xl transition-all cursor-pointer ${
                 activeTab === 'register' 
-                  ? 'bg-white text-indigo-600 shadow-sm border border-slate-200/50' 
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-200/50'
+                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
               }`}
             >
               สมัครสมาชิก
@@ -235,10 +235,11 @@ export default function Login() {
           {activeTab === 'update-password' ? (
             <>
               <div>
-                <label className="block text-[11px] sm:text-xs font-black text-slate-700 uppercase tracking-wider mb-2 pl-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 pl-1">
                   รหัสผ่านใหม่ (New Password)
                 </label>
                 <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">🔒</span>
                   <input
                     type={showPassword ? "text" : "password"}
                     required
@@ -246,16 +247,17 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
+                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm tracking-widest"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] sm:text-xs font-black text-slate-700 uppercase tracking-wider mb-2 pl-1">
+                <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 pl-1">
                   ยืนยันรหัสผ่านใหม่ (Confirm New Password)
                 </label>
                 <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">🔒</span>
                   <input
                     type={showPassword ? "text" : "password"}
                     required
@@ -263,7 +265,7 @@ export default function Login() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
+                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm tracking-widest"
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 font-bold mt-2 pl-1">* ความยาวอย่างน้อย 6 ตัวอักษร</p>
@@ -273,17 +275,18 @@ export default function Login() {
             <>
               {activeTab !== 'update-password' && (
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-black text-slate-700 uppercase tracking-wider mb-2 pl-1">
+                  <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 pl-1">
                     อีเมล (Email)
                   </label>
                   <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">✉️</span>
                     <input
                       type="email"
                       required
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="student@example.com"
-                      className="w-full pl-4 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
+                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm"
                     />
                   </div>
                 </div>
@@ -292,7 +295,7 @@ export default function Login() {
               {activeTab !== 'forgot' && (
                 <div>
                   <div className="flex items-center justify-between mb-2 pl-1 pr-1">
-                    <label className="block text-[11px] sm:text-xs font-black text-slate-700 uppercase tracking-wider">
+                    <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                       รหัสผ่าน (Password)
                     </label>
                     {activeTab === 'login' && (
@@ -306,6 +309,7 @@ export default function Login() {
                     )}
                   </div>
                   <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">🔒</span>
                     <input
                       type={showPassword ? "text" : "password"}
                       required
@@ -313,7 +317,7 @@ export default function Login() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
+                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm tracking-widest"
                     />
                   </div>
                 </div>
@@ -321,10 +325,11 @@ export default function Login() {
 
               {activeTab === 'register' && (
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-black text-slate-700 uppercase tracking-wider mb-2 pl-1">
+                  <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 pl-1">
                     ยืนยันรหัสผ่าน (Confirm Password)
                   </label>
                   <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">🔒</span>
                     <input
                       type={showPassword ? "text" : "password"}
                       required
@@ -332,7 +337,7 @@ export default function Login() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-4 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
+                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm tracking-widest"
                     />
                   </div>
                 </div>
@@ -343,7 +348,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-slate-900 hover:bg-indigo-600 text-white font-black rounded-2xl text-sm transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-3 cursor-pointer"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-all shadow-md hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-3 cursor-pointer"
           >
             {loading ? (
               <span>กำลังดำเนินการ...</span>
@@ -362,16 +367,16 @@ export default function Login() {
         {activeTab === 'login' && (
           <div className="mt-4 animate-fadeIn">
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-px flex-1 bg-slate-200" />
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
               <span className="text-[11px] font-bold text-slate-400">หรือ</span>
-              <div className="h-px flex-1 bg-slate-200" />
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
             </div>
 
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 font-black rounded-2xl text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 font-semibold rounded-xl text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
             >
               {loading ? (
                 <span>กำลังเชื่อมต่อกับ Google...</span>
@@ -400,7 +405,7 @@ export default function Login() {
             <button
               type="button"
               onClick={() => handleTabChange('login')}
-              className="text-xs sm:text-sm font-bold text-slate-500 hover:text-slate-800 transition-colors cursor-pointer flex items-center justify-center gap-1.5 mx-auto"
+              className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer flex items-center justify-center gap-1.5 mx-auto"
             >
               <span>←</span><span>กลับไปหน้าเข้าสู่ระบบ</span>
             </button>
