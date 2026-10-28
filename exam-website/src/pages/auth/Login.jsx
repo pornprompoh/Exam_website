@@ -5,12 +5,14 @@ import { supabase } from '../../lib/supabase'
 export default function Login() {
   const navigate = useNavigate()
   
-  const [activeTab, setActiveTab] = useState('login') 
+  const [activeTab, setActiveTab] = useState(() => (
+    window.location.hash.includes('type=recovery') ? 'update-password' : 'login'
+  ))
   
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
+  const [showPassword] = useState(false)
   
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
@@ -18,14 +20,8 @@ export default function Login() {
 
   useEffect(() => {
     // 🌟 1. เช็คตั้งแต่ตอนโหลดหน้าเว็บเลยว่า มีการกดลิงก์รีเซ็ตมาหรือไม่ (ดูจาก Hash ใน URL)
-    const hash = window.location.hash
-    if (hash && hash.includes('type=recovery')) {
-      setActiveTab('update-password')
-      return // หยุดการทำงานส่วนอื่นทันที เพื่อไม่ให้โดนดีดไปหน้าอื่น
-    }
-
     // 🌟 2. ดักฟังสถานะ Auth ทั่วไป
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
       if (event === 'PASSWORD_RECOVERY') {
         setActiveTab('update-password')
       } else if (event === 'SIGNED_IN' && activeTab !== 'update-password') {
@@ -168,23 +164,23 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 sm:p-6 selection:bg-indigo-500 selection:text-white relative overflow-hidden">
+    <div className="h-dvh w-full bg-slate-100 flex items-center justify-center p-3 sm:p-5 selection:bg-indigo-500 selection:text-white relative overflow-hidden">
       
       <div className="absolute top-[-10%] left-[-10%] w-[30rem] h-[30rem] bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="w-full max-w-[420px] bg-white/90 backdrop-blur-xl rounded-[2rem] shadow-2xl shadow-slate-300/50 border border-white p-6 sm:p-10 relative z-10 animate-fadeIn">
+      <div className="w-full max-w-[420px] max-h-full bg-white/90 backdrop-blur-xl rounded-[1.5rem] sm:rounded-[2rem] shadow-2xl shadow-slate-300/50 border border-white p-5 sm:p-8 relative z-10 animate-fadeIn">
         
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-2xl flex items-center justify-center text-3xl shadow-lg shadow-indigo-500/30 mx-auto mb-4 hover:scale-105 transition-transform cursor-default">
+        <div className="text-center mb-5 sm:mb-6">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-lg shadow-indigo-500/30 mx-auto mb-3 hover:scale-105 transition-transform cursor-default">
             {activeTab === 'forgot' ? '🔐' : activeTab === 'update-password' ? '🔑' : '💡'}
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1">
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mb-1">
             {activeTab === 'forgot' ? 'กู้คืนรหัสผ่าน' : activeTab === 'update-password' ? 'ตั้งรหัสผ่านใหม่' : (
               <>EXAM<span className="text-indigo-600">BANK</span></>
             )}
           </h1>
-          <p className="text-xs sm:text-sm font-bold text-slate-500">
+          <p className="text-[11px] sm:text-sm font-bold text-slate-500">
             {activeTab === 'forgot' 
               ? 'กรอกอีเมลของคุณเพื่อรับลิงก์ตั้งรหัสผ่านใหม่' 
               : activeTab === 'update-password'
@@ -194,7 +190,7 @@ export default function Login() {
         </div>
 
         {activeTab !== 'forgot' && activeTab !== 'update-password' && (
-          <div className="flex p-1 bg-slate-100 rounded-2xl mb-8 border border-slate-200/60 shadow-inner">
+          <div className="flex p-1 bg-slate-100 rounded-2xl mb-5 border border-slate-200/60 shadow-inner">
             <button
               type="button"
               onClick={() => handleTabChange('login')}
@@ -221,20 +217,20 @@ export default function Login() {
         )}
 
         {errorMsg && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl text-xs sm:text-sm font-bold text-red-600 flex items-start gap-2.5 animate-fadeIn">
+          <div           className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl text-xs sm:text-sm font-bold text-red-600 flex items-start gap-2.5 animate-fadeIn">
             <span className="text-base leading-none mt-0.5">⚠️</span>
             <span>{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs sm:text-sm font-bold text-emerald-700 flex items-start gap-2.5 animate-fadeIn">
+          <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs sm:text-sm font-bold text-emerald-700 flex items-start gap-2.5 animate-fadeIn">
             <span className="text-base leading-none mt-0.5">✨</span>
             <span>{successMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-4 sm:space-y-5 animate-slideUp">
+        <form onSubmit={handleAuth} className="space-y-3 sm:space-y-4 animate-slideUp">
           
           {activeTab === 'update-password' ? (
             <>
@@ -250,7 +246,7 @@ export default function Login() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
                   />
                 </div>
               </div>
@@ -267,7 +263,7 @@ export default function Login() {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
+                    className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 font-bold mt-2 pl-1">* ความยาวอย่างน้อย 6 ตัวอักษร</p>
@@ -287,7 +283,7 @@ export default function Login() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="student@example.com"
-                      className="w-full pl-4 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
+                      className="w-full pl-4 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
                     />
                   </div>
                 </div>
@@ -317,7 +313,7 @@ export default function Login() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-4 pr-12 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
+                      className="w-full pl-4 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
                     />
                   </div>
                 </div>
@@ -336,7 +332,7 @@ export default function Login() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-4 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
+                      className="w-full pl-4 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm tracking-widest"
                     />
                   </div>
                 </div>
@@ -347,7 +343,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-slate-900 hover:bg-indigo-600 text-white font-black rounded-2xl text-sm transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4 cursor-pointer"
+            className="w-full py-3 bg-slate-900 hover:bg-indigo-600 text-white font-black rounded-2xl text-sm transition-all shadow-lg hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-3 cursor-pointer"
           >
             {loading ? (
               <span>กำลังดำเนินการ...</span>
@@ -364,8 +360,8 @@ export default function Login() {
         </form>
 
         {activeTab === 'login' && (
-          <div className="mt-5 animate-fadeIn">
-            <div className="flex items-center gap-3 mb-5">
+          <div className="mt-4 animate-fadeIn">
+            <div className="flex items-center gap-3 mb-4">
               <div className="h-px flex-1 bg-slate-200" />
               <span className="text-[11px] font-bold text-slate-400">หรือ</span>
               <div className="h-px flex-1 bg-slate-200" />
@@ -375,7 +371,7 @@ export default function Login() {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-3.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 font-black rounded-2xl text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 font-black rounded-2xl text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
             >
               {loading ? (
                 <span>กำลังเชื่อมต่อกับ Google...</span>
