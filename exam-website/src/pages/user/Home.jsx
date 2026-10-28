@@ -81,42 +81,16 @@ export default function Home() {
       )
       const questionsData = questionResults.flat()
 
-      const { data: { session } } = await supabase.auth.getSession()
-      let historyData = []
-      if (session && questionsData?.length > 0) {
-        const { data, error: historyErr } = await supabase
-          .from('user_question_history')
-          .select('question_id, seen_count')
-          .eq('user_id', session.user.id)
-
-        if (historyErr) {
-          console.error('ไม่สามารถโหลดประวัติข้อสอบได้ จะแสดงจำนวนข้อสอบทั้งหมดแทน:', historyErr.message)
-        } else {
-          const activeQuestionIds = new Set(questionsData.map((question) => question.id))
-          historyData = (data || []).filter((item) => activeQuestionIds.has(item.question_id))
-        }
-      }
-
-      const seenIds = new Set(
-        historyData
-          .filter((item) => Number(item.seen_count) > 0)
-          .map((item) => item.question_id)
-      )
       const countMap = new Map()
-      const seenCountMap = new Map()
       if (questionsData) {
         questionsData.forEach(q => {
           countMap.set(q.category_id, (countMap.get(q.category_id) || 0) + 1)
-          if (seenIds.has(q.id)) {
-            seenCountMap.set(q.category_id, (seenCountMap.get(q.category_id) || 0) + 1)
-          }
         })
       }
 
       const mergedCategories = (catsData || []).map(cat => ({
         ...cat,
-        questionCount: countMap.get(cat.id) || 0,
-        seenQuestionCount: seenCountMap.get(cat.id) || 0
+        questionCount: countMap.get(cat.id) || 0
       }))
 
       setCategories(mergedCategories)
@@ -164,9 +138,6 @@ export default function Home() {
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight truncate">
                 คลังข้อสอบและชุดแบบทดสอบ
               </h1>
-              <p className="text-xs sm:text-sm text-slate-500 truncate mt-0.5">
-                เลือกหมวดหมู่วิชาที่ต้องการฝึกฝน ระบบจะทำการสุ่มโจทย์และสลับตัวเลือกเพื่อท้าทายความรู้ของคุณ!
-              </p>
             </div>
           </div>
 
@@ -275,24 +246,25 @@ export default function Home() {
                           <h3 className="text-base sm:text-lg font-black text-slate-900 break-words [word-break:break-word] group-hover:text-indigo-600 transition-colors">
                             {cat.name}
                           </h3>
-                          <span className="text-[11px] font-bold text-slate-400 block mt-0.5">
-                            SUBJECT CODE: <span className="text-indigo-600 font-mono">#{subjectCode}</span>
-                          </span>
+                          <div className="flex flex-wrap items-center gap-2 mt-1">
+                            <span className="text-[11px] font-semibold text-indigo-500 uppercase tracking-wider">
+                              SUBJECT CODE: <span className="font-mono">#{subjectCode}</span>
+                            </span>
+                            {hasQuestions ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                พร้อมสอบ
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                รอเพิ่มโจทย์
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                    </div>
-
-                    <div className="flex justify-end -mt-1">
-                      {hasQuestions ? (
-                        <span className="text-[11px] font-black px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 shadow-2xs">
-                          ● พร้อมสอบ
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
-                          ⏳ รอเพิ่มโจทย์
-                        </span>
-                      )}
                     </div>
 
                     <p className="text-xs sm:text-sm text-slate-600 line-clamp-2 leading-relaxed pl-14 break-words [word-break:break-word]">
@@ -300,31 +272,27 @@ export default function Home() {
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pl-0 sm:pl-14">
-                    <div className="flex items-center justify-between gap-3 min-w-0">
-                      <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 whitespace-nowrap">
-                        <span>📝 มีข้อสอบ</span>
-                        <strong className="text-slate-900 font-mono text-sm bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
-                          {cat.questionCount}
-                        </strong>
-                        <span>ข้อ</span>
-                      </div>
-                      <span className="text-[11px] font-bold text-slate-400 whitespace-nowrap">
-                        ทำแล้ว {cat.seenQuestionCount} / เหลือ {cat.questionCount - cat.seenQuestionCount}
+                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between gap-4 pl-0 sm:pl-14">
+                    <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 min-w-0">
+                      <span className="whitespace-nowrap">📝 มีข้อสอบ</span>
+                      <span className="font-bold text-slate-800 dark:text-white bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg">
+                        {cat.questionCount}
                       </span>
+                      <span>ข้อ</span>
                     </div>
 
                     {hasQuestions ? (
                       <Link
                         to={`/exam/${cat.id}`}
-                        className="w-full sm:w-auto justify-center px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-bold rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-indigo-500/20 flex items-center gap-1.5 shrink-0"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-medium text-sm rounded-xl shadow-sm hover:shadow-indigo-200 dark:hover:shadow-none transition-all cursor-pointer shrink-0"
                       >
-                        <span>🚀</span><span>เริ่มทำข้อสอบ</span>
+                        <span>🚀</span>
+                        <span className="whitespace-nowrap">เริ่มทำข้อสอบ</span>
                       </Link>
                     ) : (
                       <button
                         disabled
-                        className="w-full sm:w-auto px-4 py-2.5 bg-slate-100 text-slate-400 font-bold rounded-xl text-xs cursor-not-allowed border border-slate-200 shrink-0"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-400 font-medium text-sm rounded-xl cursor-not-allowed border border-slate-200 dark:border-slate-700 shrink-0"
                       >
                         ยังไม่มีข้อสอบ
                       </button>

@@ -216,7 +216,7 @@ export default function MistakeBank() {
                     </span>
                   </div>
 
-                  <div className="p-4 sm:p-8 space-y-5 sm:space-y-6 min-w-0">
+                  <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 min-w-0">
                     
                     <div className="text-slate-900 font-bold text-sm sm:text-lg leading-relaxed break-words [word-break:break-word] min-w-0">
                       {q.question_text}
@@ -228,7 +228,7 @@ export default function MistakeBank() {
                       </div>
                     )}
 
-                    <div className="space-y-2.5 min-w-0 pt-1">
+                    <div className="space-y-3 min-w-0 pt-1">
                       <div className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
                         ตัวเลือกทั้งหมด และจุดที่คุณต้องทบทวน:
                       </div>

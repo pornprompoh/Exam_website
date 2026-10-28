@@ -112,8 +112,8 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
   return (
     <div className="fixed inset-0 z-[1000] overflow-hidden">
       <div onClick={handleClose} className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs" />
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
-        <div className="w-screen max-w-5xl bg-slate-900 border-l border-slate-800 shadow-2xl overflow-y-auto relative">
+      <div className="fixed inset-0 flex items-stretch justify-end p-0 sm:p-4">
+        <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 sm:rounded-2xl shadow-2xl overflow-y-auto relative">
           <header className="p-6 border-b border-slate-800 flex items-center justify-between sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md">
             <div>
               <h2 className="text-lg font-black text-white">✨ AI Exam Generator</h2>

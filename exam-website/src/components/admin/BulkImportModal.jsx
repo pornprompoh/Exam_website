@@ -174,8 +174,8 @@ EXP: [พิมพ์คำอธิบายเฉลยหากมี ถ้�
       />
       
       {/* Slide-over Panel กว้างพิเศษ (Off-Canvas Drawer) */}
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10 !z-[1000]">
-        <div className="w-screen max-w-4xl bg-slate-900 border-l border-slate-800 shadow-2xl overflow-y-auto flex flex-col relative animate-slideLeft">
+      <div className="fixed inset-0 flex items-stretch justify-end p-0 sm:p-4 !z-[1000]">
+        <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 sm:rounded-2xl shadow-2xl overflow-y-auto flex flex-col relative animate-slideLeft">
           
           {/* Drawer Header */}
           <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 sticky top-0 z-20 backdrop-blur-md">

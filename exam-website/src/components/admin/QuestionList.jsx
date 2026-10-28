@@ -116,7 +116,7 @@ export default function QuestionList({
                         : 'bg-slate-900 border-slate-800 hover:border-slate-700'
                 }`}
               >
-                <div className="flex items-start justify-between gap-4 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 min-w-0">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
                     
                     {/* 🌟 Checkbox เลือกข้อสอบนี้ */}
@@ -153,10 +153,10 @@ export default function QuestionList({
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex items-center justify-end gap-1 shrink-0">
                     <button
                       onClick={() => onToggleStatus(q)}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1 ${
+                      className={`min-h-10 px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer border flex items-center gap-1 ${
                         q.is_active ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700' : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20'
                       }`}
                       title={q.is_active ? "คลิกเพื่อซ่อนข้อสอบนี้เป็นฉบับร่าง" : "คลิกเพื่อเปิดใช้งานข้อสอบนี้ทันที"}
@@ -166,14 +166,14 @@ export default function QuestionList({
 
                     <button
                       onClick={() => onEditClick(q)}
-                      className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                      className="min-h-10 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
                     >
                       <span>✏️</span><span className="hidden sm:inline">แก้ไข</span>
                     </button>
                     
                     <button
                       onClick={() => onDeleteClick(q)}
-                      className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"
+                      className="min-h-10 min-w-10 p-2 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer"
                     >
                       🗑️
                     </button>

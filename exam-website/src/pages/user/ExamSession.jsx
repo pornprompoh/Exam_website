@@ -439,7 +439,7 @@ export default function ExamSession() {
         />
 
         <div className="max-w-2xl mx-auto px-4 sm:px-6 mt-8 sm:mt-12">
-          <div className="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-900/5 space-y-8 animate-fadeIn">
+          <div className="w-full bg-white p-5 sm:p-10 rounded-3xl border border-slate-200/80 shadow-xl shadow-slate-900/5 space-y-7 sm:space-y-8 animate-fadeIn">
             
             <div className="text-center space-y-2 pb-6 border-b border-slate-100">
               <div className="w-16 h-16 bg-teal-50 text-teal-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-inner">
@@ -464,7 +464,7 @@ export default function ExamSession() {
                     key={cnt}
                     type="button"
                     onClick={() => handleSelectCountBtn(cnt)}
-                    className={`py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer border flex flex-col items-center justify-center gap-0.5 ${
+                    className={`min-h-12 py-3 px-3 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer border flex flex-col items-center justify-center gap-0.5 ${
                       selectedCount === cnt && parseInt(customCountInput) === cnt
                         ? 'bg-slate-900 text-white border-slate-900 shadow-md scale-[1.02]'
                         : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
@@ -518,7 +518,7 @@ export default function ExamSession() {
                       setSelectedTimeLimit(t.value)
                       setCustomTimeInput('')
                     }}
-                    className={`p-3.5 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer border text-left flex items-center justify-between ${
+                    className={`min-h-12 p-3.5 rounded-2xl font-bold text-xs sm:text-sm transition-all cursor-pointer border text-left flex items-center justify-between ${
                       selectedTimeLimit === t.value
                         ? 'bg-teal-600 text-white border-teal-600 shadow-md scale-[1.01]'
                         : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200/80'
@@ -740,7 +740,7 @@ export default function ExamSession() {
                   <div
                     key={optIdx}
                     onClick={() => handleSelectOption(currentQ.id, optIdx)}
-                    className={`p-3.5 sm:p-4.5 rounded-2xl border transition-all flex items-start gap-3 sm:gap-3.5 min-w-0 ${examPhase === 'testing' ? 'cursor-pointer active:scale-[0.998]' : 'cursor-default'} ${cardStyle}`}
+                    className={`min-h-14 p-3.5 sm:p-4.5 rounded-2xl border transition-all flex items-start gap-3 sm:gap-3.5 min-w-0 ${examPhase === 'testing' ? 'cursor-pointer active:scale-[0.998]' : 'cursor-default'} ${cardStyle}`}
                   >
                     <span className={`w-6 h-6 sm:w-7 sm:h-7 rounded-xl text-xs flex items-center justify-center shrink-0 font-mono mt-0.5 transition-colors ${badgeStyle}`}>{optIdx + 1}</span>
                     <span className="text-xs sm:text-base leading-relaxed break-words [word-break:break-word] flex-1 min-w-0 pt-0.5">{optionText}</span>
