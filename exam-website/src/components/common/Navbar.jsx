@@ -127,7 +127,7 @@ export default function Navbar({
   }
 
   return (
-    <nav key={location.pathname} className={`sticky top-0 z-50 backdrop-blur-md border-b transition-all ${isAdminArea ? 'bg-slate-900/80 border-slate-800/80' : 'bg-white/80 border-slate-200/80'}`}>
+    <nav key={location.pathname} className={`sticky top-0 z-50 w-full backdrop-blur-md border-b transition-all ${isAdminArea ? 'bg-slate-900/80 dark:bg-slate-900/80 border-slate-800 dark:border-slate-800' : 'bg-white/80 dark:bg-slate-900/80 border-slate-200 dark:border-slate-800'}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         {customLeftContent || (
           <Link to={isAdminArea ? '/admin/categories' : '/'} className="flex items-center gap-2.5 shrink-0 group">

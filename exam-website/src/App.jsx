@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useLayoutEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
@@ -16,6 +16,54 @@ import Navbar from './components/common/Navbar'
 // 🌟 1. นำเข้า ModalProvider และ useModal
 import { ModalProvider, useModal } from './context/ModalContext'
 import { ThemeProvider } from './context/ThemeContext'
+
+const SCROLL_STORAGE_KEY = 'app-scroll-positions'
+
+function getSavedScrollPositions() {
+  try {
+    return JSON.parse(sessionStorage.getItem(SCROLL_STORAGE_KEY) || '{}')
+  } catch {
+    return {}
+  }
+}
+
+function ScrollRestoration() {
+  const { pathname } = useLocation()
+
+  useLayoutEffect(() => {
+    const savedPositions = getSavedScrollPositions()
+    const savedPosition = Number(savedPositions[pathname] || 0)
+    if (!savedPosition) return undefined
+
+    const restoreScrollPosition = () => window.scrollTo(0, savedPosition)
+    restoreScrollPosition()
+
+    const observer = new ResizeObserver(restoreScrollPosition)
+    observer.observe(document.body)
+    const stopObserving = window.setTimeout(() => observer.disconnect(), 2000)
+
+    return () => {
+      window.clearTimeout(stopObserving)
+      observer.disconnect()
+    }
+  }, [pathname])
+
+  useEffect(() => {
+    const saveScrollPosition = () => {
+      const savedPositions = getSavedScrollPositions()
+      savedPositions[pathname] = window.scrollY
+      sessionStorage.setItem(SCROLL_STORAGE_KEY, JSON.stringify(savedPositions))
+    }
+
+    window.addEventListener('scroll', saveScrollPosition, { passive: true })
+    return () => {
+      saveScrollPosition()
+      window.removeEventListener('scroll', saveScrollPosition)
+    }
+  }, [pathname])
+
+  return null
+}
 
 function ProtectedAdminRoute() {
   const [loading, setLoading] = useState(true)
@@ -122,6 +170,7 @@ export default function App() {
       {/* 🌟 3. ครอบ Router ทั้งหมดด้วย ModalProvider เป็นอันเสร็จสมบูรณ์ */}
       <ThemeProvider>
         <ModalProvider>
+          <ScrollRestoration />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Home />} />
