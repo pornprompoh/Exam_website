@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/immutability, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 

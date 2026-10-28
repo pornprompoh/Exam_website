@@ -1,5 +1,3 @@
-import React from 'react'
-
 export default function BatchActionBar({
   selectedCount,
   itemName = 'รายการ', // เช่น 'หมวด' หรือ 'ข้อ'

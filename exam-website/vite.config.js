@@ -8,4 +8,22 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/pdfjs-dist')) return 'pdfjs'
+          if (
+            id.includes('node_modules/react') ||
+            id.includes('node_modules/react-dom') ||
+            id.includes('node_modules/@supabase/supabase-js')
+          ) {
+            return 'vendor'
+          }
+          return undefined
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500
+  }
 })
