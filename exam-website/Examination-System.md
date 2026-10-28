@@ -13,8 +13,8 @@
 1. **Categories** - หมวดหมู่หรือวิชา
 2. **Questions** - คลังข้อสอบของแต่ละหมวด
 3. **Exam Session** - การสอบหนึ่งครั้งของผู้ใช้
-4. **Mistake Bank** - คลังข้อสอบที่ผู้ใช้ตอบผิดและยังไม่ได้กดว่าเข้าใจแล้ว
-5. **LocalStorage** - ใช้เก็บประวัติข้อที่เคยเห็นและเป็น fallback สำหรับประวัติข้อผิด
+4. **Mistake Bank** - รายละเอียดคำตอบผิดและคำอธิบายสำหรับการทบทวน
+5. **User Question History** - ประวัติข้อสอบรายผู้ใช้ที่ซิงค์ผ่าน Supabase
 
 ลำดับการทำงานโดยรวม:
 
@@ -193,40 +193,34 @@ supabase
 
 ## 7. แหล่งข้อมูลประวัติผู้ใช้
 
-### 7.1 ประวัติข้อที่เคยเห็น
+### 7.1 ประวัติข้อสอบที่เคยทำ
 
-เก็บใน LocalStorage ตามหมวด:
+เก็บในตาราง `user_question_history` โดยใช้คีย์ร่วม:
 
 ```text
-seen_questions_cat_<categoryId>
+user_id + question_id
 ```
 
-ค่าคือ Array ของ `question_id` ที่ผู้ใช้เคยทำหรือเคยเห็นในชุดสอบ
+ฟิลด์สำคัญ:
 
-ปัจจุบันยังไม่มีตารางฐานข้อมูลสำหรับเก็บสถานะ “เคยเห็น” โดยเฉพาะ จึงทำให้ประวัติส่วนนี้:
+| ฟิลด์ | ความหมาย |
+|---|---|
+| `seen_count` | จำนวนครั้งที่ข้อสอบถูกส่งในชุดสอบ |
+| `last_seen_at` | เวลาที่ทำข้อสอบล่าสุด |
+| `last_result` | `correct`, `wrong` หรือ `unanswered` |
 
-- ผูกกับ Browser และอุปกรณ์
-- ไม่ซิงค์ข้ามเครื่อง
-- หายเมื่อผู้ใช้ล้างข้อมูลเว็บไซต์
+เมื่อส่งข้อสอบ ระบบจะอ่าน `seen_count` เดิมแล้วเพิ่มขึ้น 1 ก่อน upsert กลับไปยัง Supabase ประวัติจึงซิงค์ได้ทุกอุปกรณ์
 
-### 7.2 ประวัติข้อผิด
+### 7.2 ประวัติข้อผิดและรายละเอียดการทบทวน
 
-แหล่งข้อมูลหลักคือ `mistake_bank` โดยกรอง:
+ระบบใช้ `user_question_history.last_result = 'wrong'` เป็นตัวบอกว่าผลล่าสุดของข้อนั้นผิด และใช้ `mistake_bank` สำหรับรายละเอียดคำตอบผิด/คำอธิบาย โดยกรอง:
 
 ```text
 user_id = ผู้ใช้ปัจจุบัน
 is_resolved = false
 ```
 
-LocalStorage:
-
-```text
-mistake_questions_cat_<categoryId>
-```
-
-ยังถูกเก็บไว้เป็น fallback และ cache ฝั่งเครื่อง หาก query ฐานข้อมูลมีปัญหา
-
-ข้อดีของการใช้ `mistake_bank` เป็นหลักคือประวัติข้อผิดของผู้ใช้สามารถใช้ร่วมกันได้ทุกอุปกรณ์ที่เข้าสู่ระบบเดียวกัน
+เมื่อผู้ใช้กด “เข้าใจแล้ว” ระบบจะอัปเดตทั้ง `mistake_bank.is_resolved` และ `user_question_history.last_result = 'correct'` เพื่อไม่ให้ข้อดังกล่าวกลับเข้าสู่คลังข้อผิดหรือโควต้าสุ่มข้อผิดอีก
 
 ---
 
@@ -235,7 +229,7 @@ mistake_questions_cat_<categoryId>
 เมื่อเริ่มสอบ ระบบแบ่งข้อสอบ active ของหมวดนั้นเป็น 3 กลุ่ม:
 
 1. **Mistake pool** - เคยตอบผิดและยังไม่ resolved
-2. **Unseen pool** - ยังไม่เคยอยู่ใน `seen_questions`
+2. **Unseen pool** - ไม่มีประวัติ หรือมี `seen_count = 0`
 3. **Seen-correct pool** - เคยเห็นแล้วและไม่อยู่ในรายการข้อผิด
 
 ### โควต้าการเลือก
@@ -346,12 +340,12 @@ userAnswers[questionId] = displayOptionIndex
 - ตอบถูก: เพิ่มคะแนน 1 คะแนน
 - ตอบผิด: เพิ่มรายการลงคลังข้อผิด
 - ไม่ตอบ: ถือเป็นข้อผิดและบันทึก `user_answer = null`
-- ทุกข้อที่อยู่ในชุดสอบจะถูกเพิ่มเข้า `seen_questions_cat_<categoryId>`
+- ทุกข้อที่อยู่ในชุดสอบจะ upsert เข้า `user_question_history`
 
 เมื่อทำข้อที่เคยผิดแล้วตอบถูก:
 
-- ลบ ID ออกจาก LocalStorage รายการข้อผิด
 - อัปเดต record ที่ตรงกันใน `mistake_bank` ให้ `is_resolved = true`
+- อัปเดต `user_question_history.last_result = 'correct'`
 
 ---
 
@@ -380,7 +374,7 @@ userAnswers[questionId] = displayOptionIndex
 
 1. อัปเดตข้อผิดของผู้ใช้และข้อเดียวกันที่ยัง `is_resolved = false`
 2. เอาข้อนั้นออกจากรายการบนหน้าจอ
-3. เอา ID ออกจาก LocalStorage
+3. อัปเดต `user_question_history.last_result` เป็น `correct`
 
 ดังนั้นข้อดังกล่าวจะไม่ถูกนำกลับมาเป็นข้อผิดในการสุ่มครั้งถัดไป
 
@@ -403,10 +397,10 @@ userAnswers[questionId] = displayOptionIndex
 ตรวจ:
 
 1. ผู้ใช้เข้าสู่ระบบบัญชีเดียวกันหรือไม่
-2. `mistake_bank.user_id` ตรงกับผู้ใช้ปัจจุบันหรือไม่
-3. `is_resolved` เป็น `false` อยู่หรือไม่
-4. LocalStorage ยังมี key `mistake_questions_cat_<categoryId>` หรือไม่
-5. RLS ของ `mistake_bank` อนุญาตให้ผู้ใช้อ่านและอัปเดตข้อมูลของตนเองหรือไม่
+2. `mistake_bank.user_id` และ `user_question_history.user_id` ตรงกับผู้ใช้ปัจจุบันหรือไม่
+3. `user_question_history.last_result` เป็น `wrong` อยู่หรือไม่
+4. `mistake_bank.is_resolved` เป็น `false` อยู่หรือไม่
+5. RLS ของทั้งสองตารางอนุญาตให้ผู้ใช้อ่านและอัปเดตข้อมูลของตนเองหรือไม่
 
 ### ตรวจเฉลยผิดหลังสลับตัวเลือก
 
@@ -421,17 +415,17 @@ userAnswers[questionId] = displayOptionIndex
 
 ## 15. ข้อจำกัดปัจจุบัน
 
-1. ประวัติ `seen` ยังอยู่ใน LocalStorage จึงไม่ซิงค์ข้ามอุปกรณ์
+1. การเพิ่ม `seen_count` เป็น read-then-upsert ที่ฝั่ง Client หากมีการส่งสอบพร้อมกันหลายแท็บอาจเกิด race condition ควรย้ายไป RPC/ฟังก์ชันฐานข้อมูลเมื่อระบบต้องการความแม่นยำระดับ transaction
 2. การสอบโหลดข้อสอบ active ทั้งหมวดเข้ามาที่ Browser ก่อนสุ่ม หากคลังใหญ่มากอาจต้องปรับเป็น server-side selection หรือ pagination
 3. สัดส่วนข้อผิด 20% เป็นค่าเป้าหมาย อาจไม่ครบเมื่อมีข้อผิดไม่พอ
-4. การบันทึกข้อมูลสอบและข้อผิดเกิดหลังเปลี่ยนหน้าเป็นผลสอบแล้ว หาก Supabase ล้มเหลว ผู้ใช้ยังเห็นผลสอบ แต่ประวัติอาจบันทึกไม่ครบ
+4. การบันทึกข้อมูลสอบและประวัติเกิดหลังส่งผลสอบแล้ว หาก Supabase ล้มเหลว ผู้ใช้ยังเห็นผลสอบ แต่ประวัติอาจบันทึกไม่ครบ
 5. การสุ่มด้วย `Math.random()` เหมาะกับการกระจายข้อสอบทั่วไป แต่ไม่ใช่การสุ่มที่ใช้สำหรับงานความปลอดภัยหรือการจับสลากที่ต้องตรวจสอบได้
 
 ---
 
 ## 16. แนวทางพัฒนาต่อ
 
-หากต้องการให้ประวัติครบทุกอุปกรณ์ ควรเพิ่มตาราง เช่น `user_question_history`:
+ตาราง `user_question_history` รองรับการซิงค์ประวัติข้ามอุปกรณ์แล้ว:
 
 | ฟิลด์ | ความหมาย |
 |---|---|
@@ -441,9 +435,9 @@ userAnswers[questionId] = displayOptionIndex
 | `last_seen_at` | เวลาที่เห็นล่าสุด |
 | `last_result` | ผลล่าสุด เช่น `correct`, `wrong`, `unanswered` |
 
-แนวทางนี้จะช่วย:
+โครงสร้างนี้ช่วย:
 
-- ย้าย `seen` ออกจาก LocalStorage
+- เก็บ `seen` บนฐานข้อมูลแทน LocalStorage
 - คำนวณข้อที่ยังไม่เคยเห็นจากข้อมูลจริงของผู้ใช้
 - ซิงค์ประวัติทุกอุปกรณ์
 - ทำ analytics รายข้อได้ละเอียดขึ้น
@@ -469,4 +463,4 @@ userAnswers[questionId] = displayOptionIndex
   → อัปเดตประวัติสำหรับรอบถัดไป
 ```
 
-แกนสำคัญที่ต้องรักษาให้สอดคล้องกันคือ `category_id`, `is_active`, zero-based option index, `mistake_bank.user_id` และสถานะ `is_resolved`
+แกนสำคัญที่ต้องรักษาให้สอดคล้องกันคือ `category_id`, `is_active`, zero-based option index, `user_question_history.user_id`, `user_question_history.last_result` และ `mistake_bank.is_resolved`

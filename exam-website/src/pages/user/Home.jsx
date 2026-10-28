@@ -73,16 +73,42 @@ export default function Home() {
 
       if (qErr) throw qErr
 
+      const { data: { session } } = await supabase.auth.getSession()
+      let historyData = []
+      if (session && questionsData?.length > 0) {
+        const { data, error: historyErr } = await supabase
+          .from('user_question_history')
+          .select('question_id, seen_count')
+          .eq('user_id', session.user.id)
+          .in('question_id', questionsData.map((question) => question.id))
+
+        if (historyErr) {
+          console.error('ไม่สามารถโหลดประวัติข้อสอบได้ จะแสดงจำนวนข้อสอบทั้งหมดแทน:', historyErr.message)
+        } else {
+          historyData = data || []
+        }
+      }
+
+      const seenIds = new Set(
+        historyData
+          .filter((item) => Number(item.seen_count) > 0)
+          .map((item) => item.question_id)
+      )
       const countMap = new Map()
+      const seenCountMap = new Map()
       if (questionsData) {
         questionsData.forEach(q => {
           countMap.set(q.category_id, (countMap.get(q.category_id) || 0) + 1)
+          if (seenIds.has(q.id)) {
+            seenCountMap.set(q.category_id, (seenCountMap.get(q.category_id) || 0) + 1)
+          }
         })
       }
 
       const mergedCategories = (catsData || []).map(cat => ({
         ...cat,
-        questionCount: countMap.get(cat.id) || 0
+        questionCount: countMap.get(cat.id) || 0,
+        seenQuestionCount: seenCountMap.get(cat.id) || 0
       }))
 
       setCategories(mergedCategories)
@@ -271,6 +297,9 @@ export default function Home() {
                       </strong>
                       <span>ข้อ</span>
                     </div>
+                    <span className="text-[11px] font-bold text-slate-400">
+                      ทำแล้ว {cat.seenQuestionCount} / เหลือ {cat.questionCount - cat.seenQuestionCount}
+                    </span>
 
                     {hasQuestions ? (
                       <Link

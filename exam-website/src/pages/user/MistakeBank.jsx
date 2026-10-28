@@ -22,7 +22,26 @@ export default function MistakeBank() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return
 
-      const { data, error } = await supabase
+      const { data: historyData, error: historyError } = await supabase
+        .from('user_question_history')
+        .select('question_id')
+        .eq('user_id', session.user.id)
+        .eq('last_result', 'wrong')
+
+      if (historyError) {
+        console.error('ไม่สามารถโหลดประวัติผลล่าสุดได้ จะใช้คลังข้อผิดเป็น fallback:', historyError.message)
+      }
+
+      const wrongQuestionIds = historyError
+        ? null
+        : [...new Set((historyData || []).map((item) => item.question_id))]
+      if (wrongQuestionIds && wrongQuestionIds.length === 0) {
+        setMistakes([])
+        setCategories([])
+        return
+      }
+
+      let mistakeQuery = supabase
         .from('mistake_bank')
         .select(`
           id,
@@ -45,6 +64,11 @@ export default function MistakeBank() {
         .eq('is_resolved', false)
         .order('created_at', { ascending: false })
 
+      if (wrongQuestionIds) {
+        mistakeQuery = mistakeQuery.in('question_id', wrongQuestionIds)
+      }
+
+      const { data, error } = await mistakeQuery
       if (error) throw error
 
       const validMistakes = (data || []).filter(item => item.questions !== null)
@@ -91,20 +115,19 @@ export default function MistakeBank() {
       const { error } = await resolveQuery
 
       if (error) throw error
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session && question?.id) {
+        const { error: historyError } = await supabase
+          .from('user_question_history')
+          .update({ last_result: 'correct', last_seen_at: new Date().toISOString() })
+          .eq('user_id', session.user.id)
+          .eq('question_id', question.id)
+
+        if (historyError) throw historyError
+      }
       
       setMistakes((prev) => prev.filter((item) => item.questions?.id !== question?.id))
-      if (question?.category_id && question.id) {
-        const storageKey = `mistake_questions_cat_${question.category_id}`
-        try {
-          const storedIds = JSON.parse(localStorage.getItem(storageKey) || '[]')
-          const remainingIds = Array.isArray(storedIds)
-            ? storedIds.filter((questionId) => questionId !== question.id)
-            : []
-          localStorage.setItem(storageKey, JSON.stringify(remainingIds))
-        } catch (storageError) {
-          console.error('ไม่สามารถลบข้อสอบออกจากประวัติการสุ่มในเครื่องได้:', storageError)
-        }
-      }
       setModalTarget(null)
     } catch (err) {
       alert('ไม่สามารถอัปเดตสถานะได้: ' + err.message)

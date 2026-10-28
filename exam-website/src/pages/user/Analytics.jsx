@@ -48,6 +48,15 @@ export default function Analytics() {
 
       if (mistakeErr) throw mistakeErr
 
+      const { data: historyData, error: historyErr } = await supabase
+        .from('user_question_history')
+        .select('question_id, seen_count, last_result')
+        .eq('user_id', session.user.id)
+
+      if (historyErr) {
+        console.error('ไม่สามารถโหลดประวัติข้อสอบรายข้อได้ จะใช้สถิติจากรอบสอบแทน:', historyErr.message)
+      }
+
       // --- คำนวณ Zone 1: KPI Summary ---
       const totalSess = validSessions.length
       setTotalSessions(totalSess)
@@ -58,9 +67,21 @@ export default function Analytics() {
         totalQ += (s.total_questions || 0)
         totalScore += (s.score || 0)
       })
-      setTotalQuestions(totalQ)
+      const historyQuestionCount = (historyData || []).reduce(
+        (sum, item) => sum + (Number(item.seen_count) || 0),
+        0
+      )
+      setTotalQuestions(historyQuestionCount || totalQ)
 
-      const acc = totalQ > 0 ? ((totalScore / totalQ) * 100).toFixed(1) : 0
+      const historyAnswered = (historyData || []).filter(
+        (item) => item.last_result === 'correct' || item.last_result === 'wrong'
+      )
+      const historyCorrect = historyAnswered.filter((item) => item.last_result === 'correct').length
+      const acc = historyAnswered.length > 0
+        ? ((historyCorrect / historyAnswered.length) * 100).toFixed(1)
+        : totalQ > 0
+          ? ((totalScore / totalQ) * 100).toFixed(1)
+          : 0
       setOverallAccuracy(acc)
 
       const mistakes = mistakeData || []

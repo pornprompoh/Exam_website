@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import BulkImportModal from '../../components/admin/BulkImportModal'
+import AIExamGeneratorModal from '../../components/admin/AIExamGeneratorModal'
 import QuestionForm from '../../components/admin/QuestionForm'
 import QuestionList from '../../components/admin/QuestionList'
 import PaginationBar from '../../components/admin/PaginationBar'
@@ -27,6 +28,7 @@ export default function QuestionManager() {
   const [editingQuestion, setEditingQuestion] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [showBulkModal, setShowBulkModal] = useState(false)
+  const [showAIGeneratorModal, setShowAIGeneratorModal] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   // 🌟 State ใหม่สำหรับ Bulk Actions (จัดการข้อสอบแบบกลุ่ม)
@@ -356,6 +358,21 @@ export default function QuestionManager() {
         }} 
       />
 
+      <AIExamGeneratorModal
+        key={`ai-generator-${selectedCat || 'empty'}`}
+        isOpen={showAIGeneratorModal}
+        onClose={() => setShowAIGeneratorModal(false)}
+        categories={categories}
+        categoryId={selectedCat}
+        currentUserId={currentUserId}
+        onNotify={showModal}
+        onSuccess={() => {
+          setCurrentPage(1)
+          setSelectedIds([])
+          fetchQuestions(selectedCat, 1, sortOrder)
+        }}
+      />
+
       {isFormOpen && (
         <div className="fixed inset-0 z-50 overflow-hidden">
           <div onClick={handleCloseForm} className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer" />
@@ -432,6 +449,10 @@ export default function QuestionManager() {
           <button onClick={() => setShowBulkModal(true)} disabled={categories.length === 0} className="flex-1 sm:flex-initial px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-30 border border-indigo-500/30 text-indigo-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 h-full">
             <span className="hidden sm:inline">⚡ นำเข้าชุดใหญ่</span>
             <span className="sm:hidden">⚡ AI Bulk</span>
+          </button>
+
+          <button onClick={() => setShowAIGeneratorModal(true)} disabled={categories.length === 0} className="flex-1 sm:flex-initial px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 border border-emerald-500/30 text-emerald-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 h-full">
+            <span>✨ AI จากเอกสาร</span>
           </button>
         </div>
       </div>
