@@ -3,6 +3,11 @@ import { getGeminiApiKey } from './geminiApiKey'
 
 const GEMINI_MODEL = 'gemini-3.8-flash'
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
+const PROGRESS_STEP_DELAY_MS = 450
+
+function waitForProgressTransition() {
+  return new Promise((resolve) => setTimeout(resolve, PROGRESS_STEP_DELAY_MS))
+}
 
 function parseJsonResponse(text) {
   const withoutFence = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim()
@@ -99,8 +104,10 @@ ${promptHint ? `คำแนะนำเพิ่มเติมจากผู�
 เอกสาร:
 ${sourceParts.join('\n\n')}`
 
+  await waitForProgressTransition()
   onProgress?.(2, 'กำลังจัดหมวดหมู่และส่งเนื้อหาให้ Gemini วิเคราะห์...')
-  await new Promise((resolve) => setTimeout(resolve, 0))
+  await waitForProgressTransition()
+  onProgress?.(3, 'Gemini กำลังร่างโจทย์ ชอยส์ตัวเลือก และคำอธิบาย...')
   const responsePromise = fetch(`${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -115,10 +122,8 @@ ${sourceParts.join('\n\n')}`
     })
   })
 
-  onProgress?.(3, 'Gemini กำลังร่างโจทย์ ชอยส์ตัวเลือก และคำอธิบาย...')
   const response = await responsePromise
   const responseText = await response.text()
-  onProgress?.(4, 'กำลังตรวจสอบโครงสร้าง JSON และจัดเรียงตาราง...')
   const payload = parseResponse(responseText)
 
   if (!response.ok) {
@@ -134,5 +139,8 @@ ${sourceParts.join('\n\n')}`
 
   const generatedText = payload?.candidates?.[0]?.content?.parts?.[0]?.text
   if (!generatedText) throw new Error('AI ไม่ส่งผลลัพธ์ข้อสอบกลับมา')
-  return parseJsonResponse(generatedText).map(normalizeQuestion)
+  const questions = parseJsonResponse(generatedText).map(normalizeQuestion)
+  onProgress?.(4, 'กำลังตรวจสอบโครงสร้าง JSON และจัดเรียงตาราง...')
+  await waitForProgressTransition()
+  return questions
 }

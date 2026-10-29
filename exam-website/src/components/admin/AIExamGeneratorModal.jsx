@@ -26,7 +26,10 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
   const [questions, setQuestions] = useState([])
   const [step, setStep] = useState('setup')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generationProgress, setGenerationProgress] = useState({ step: 1, message: 'กำลังเตรียมเริ่มต้น...' })
+  const [generationProgress, setGenerationProgress] = useState({
+    step: 1,
+    message: 'กำลังอ่านและสกัดข้อความจากเอกสาร (PDF/TXT)...'
+  })
   const [generationError, setGenerationError] = useState('')
   const [saving, setSaving] = useState(false)
   const [fileError, setFileError] = useState('')
@@ -61,6 +64,7 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
     }
     if (fileError) return notify('warning', 'ไฟล์ไม่ถูกต้อง', fileError)
     setGenerationError('')
+    setGenerationProgress({ step: 1, message: 'กำลังอ่านและสกัดข้อความจากเอกสาร (PDF/TXT)...' })
     setIsGenerating(true)
     try {
       const generated = await generateExamQuestions({
@@ -82,17 +86,12 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
     }
   }
 
-  const updateQuestion = (index, field, value) => {
-    setQuestions((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item))
+  const saveQuestion = (index, updatedQuestion) => {
+    setQuestions((current) => current.map((item, itemIndex) => itemIndex === index ? updatedQuestion : item))
   }
 
-  const updateOption = (questionIndex, optionIndex, value) => {
-    setQuestions((current) => current.map((item, itemIndex) => {
-      if (itemIndex !== questionIndex) return item
-      const options = [...item.options]
-      options[optionIndex] = value
-      return { ...item, options }
-    }))
+  const removeQuestion = (index) => {
+    setQuestions((current) => current.filter((_, itemIndex) => itemIndex !== index))
   }
 
   const handleSave = async () => {
@@ -137,7 +136,7 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
     setLanguage('th_tech')
     setDistributionMode('importance')
     setStep('setup')
-    setGenerationProgress({ step: 1, message: 'กำลังเตรียมเริ่มต้น...' })
+    setGenerationProgress({ step: 1, message: 'กำลังอ่านและสกัดข้อความจากเอกสาร (PDF/TXT)...' })
     setGenerationError('')
     setFileError('')
     onClose()
@@ -193,7 +192,11 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
             ) : (
               <div className="space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-sm font-bold text-white">ตรวจทานแล้ว {questions.length} ข้อ <span className="text-xs font-normal text-slate-400">(แหล่งที่มาใช้ตรวจสอบเท่านั้น จะไม่ถูกบันทึก)</span></div><button type="button" onClick={() => setStep('setup')} className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-bold text-slate-300 cursor-pointer">← สร้างใหม่</button></div>
-                <ExamPreviewTable questions={questions} onChangeQuestion={updateQuestion} onChangeOption={updateOption} onRemoveQuestion={(index) => setQuestions((current) => current.filter((_, itemIndex) => itemIndex !== index))} />
+                <ExamPreviewTable
+                  questions={questions}
+                  onSaveQuestion={saveQuestion}
+                  onRemoveQuestion={removeQuestion}
+                />
                 <div className="flex justify-end gap-3 border-t border-slate-800 pt-4"><button type="button" onClick={handleClose} className="rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-slate-300 cursor-pointer">ยกเลิก</button><button type="button" onClick={handleSave} disabled={saving || questions.length === 0} className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50 cursor-pointer">{saving ? 'กำลังบันทึก...' : `ยืนยันนำเข้า ${questions.length} ข้อ`}</button></div>
               </div>
             )}
