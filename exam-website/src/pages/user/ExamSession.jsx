@@ -674,18 +674,19 @@ export default function ExamSession() {
         }
       />
 
-      {examPhase === 'testing' && (
-        <div className="w-full bg-slate-200 h-1.5 sticky top-16 z-20 overflow-hidden shadow-sm">
-          <div 
-            className={`h-full transition-all duration-1000 ease-linear ${
-              totalTimeSeconds > 0 && isTimeCritical ? 'bg-red-500' : 'bg-gradient-to-r from-teal-400 to-emerald-500'
-            }`}
-            style={{ width: `${totalTimeSeconds > 0 ? timePercent : 100}%` }}
-          />
-        </div>
-      )}
+      <div className="pt-16 overflow-hidden">
+        {examPhase === 'testing' && (
+          <div className="w-full h-1 bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <div
+              className={`h-full transition-all duration-300 ${
+                totalTimeSeconds > 0 && isTimeCritical ? 'bg-red-500' : 'bg-emerald-500'
+              }`}
+              style={{ width: `${totalTimeSeconds > 0 ? timePercent : 100}%` }}
+            />
+          </div>
+        )}
 
-      <div className="max-w-6xl mx-auto px-3 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 min-w-0">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 min-w-0">
         
         <div className="lg:col-span-3 order-1 lg:order-1 space-y-6 min-w-0">
           <div className="bg-white p-5 sm:p-10 rounded-3xl border border-slate-200/80 shadow-sm min-w-0">
@@ -845,6 +846,7 @@ export default function ExamSession() {
           </div>
         </div>
 
+        </div>
       </div>
     </div>
   )
