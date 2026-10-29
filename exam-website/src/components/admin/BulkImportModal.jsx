@@ -165,17 +165,18 @@ EXP: [พิมพ์คำอธิบายเฉลยหากมี ถ้�
   }
 
   return (
-    /* 🌟 ดัน z-index เป็น !z-[999] บังคับลอยเหนือ Navbar 100% */
-    <div className="fixed inset-0 !z-[999] overflow-hidden">
-      {/* Backdrop มืด */}
-      <div 
-        onClick={handleClose} 
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs !z-[999] transition-opacity animate-fadeIn cursor-pointer"
-      />
-      
-      {/* Slide-over Panel กว้างพิเศษ (Off-Canvas Drawer) */}
-      <div className="fixed inset-0 flex items-stretch justify-end p-0 sm:p-4 !z-[1000]">
-        <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 sm:rounded-2xl shadow-2xl overflow-y-auto flex flex-col relative animate-slideLeft">
+    <div
+      role="presentation"
+      onClick={handleClose}
+      className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-xs flex justify-end"
+    >
+        <section
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="bulk-import-title"
+          onClick={(event) => event.stopPropagation()}
+          className="h-full w-full max-w-4xl bg-slate-900 border-l border-slate-800 shadow-2xl overflow-y-auto flex flex-col relative animate-slideLeft"
+        >
           
           {/* Drawer Header */}
           <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 sticky top-0 z-20 backdrop-blur-md">
@@ -184,7 +185,7 @@ EXP: [พิมพ์คำอธิบายเฉลยหากมี ถ้�
                 ⚡
               </span>
               <div className="min-w-0">
-                <h3 className="text-base font-black text-white uppercase tracking-wider truncate">
+                <h3 id="bulk-import-title" className="text-base font-black text-white uppercase tracking-wider truncate">
                   นำเข้าข้อสอบชุดใหญ่อัจฉริยะ (AI Bulk Import)
                 </h3>
                 <p className="text-xs text-slate-400 truncate">
@@ -298,9 +299,7 @@ EXP: [พิมพ์คำอธิบายเฉลยหากมี ถ้�
               </div>
             )}
           </div>
-
-        </div>
-      </div>
+                  </section>
     </div>
   )
 }

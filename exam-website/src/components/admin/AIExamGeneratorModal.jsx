@@ -110,15 +110,29 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
   }
 
   return (
-    <div className="fixed inset-0 z-[1000] overflow-hidden">
-      <div onClick={handleClose} className="absolute inset-0 bg-slate-950/80 backdrop-blur-xs" />
-      <div className="fixed inset-0 flex items-stretch justify-end p-0 sm:p-4">
-        <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 sm:rounded-2xl shadow-2xl overflow-y-auto relative">
+    <div
+      role="presentation"
+      onClick={handleClose}
+      className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-xs flex justify-end"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-exam-generator-title"
+        onClick={(event) => event.stopPropagation()}
+        className="h-full w-full max-w-4xl bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col overflow-y-auto relative animate-slideLeft"
+      >
           <header className="p-6 border-b border-slate-800 flex items-center justify-between sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md">
-            <div><h2 className="text-lg font-black text-white">✨ AI Exam Generator</h2><p className="text-xs text-slate-400 mt-1">{step === 'setup' ? 'สร้างข้อสอบจากสไลด์หรือเอกสาร' : 'ตรวจสอบและแก้ไขก่อนบันทึก'}</p></div>
-            <button type="button" onClick={handleClose} className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center text-lg shrink-0">✨</span>
+              <div className="min-w-0">
+                <h2 id="ai-exam-generator-title" className="text-base font-black text-white uppercase tracking-wider truncate">AI Exam Generator</h2>
+                <p className="text-xs text-slate-400 mt-1">{step === 'setup' ? 'สร้างข้อสอบจากสไลด์หรือเอกสาร' : 'ตรวจสอบและแก้ไขก่อนบันทึก'}</p>
+              </div>
+            </div>
+            <button type="button" onClick={handleClose} className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-400 cursor-pointer shrink-0">✕</button>
           </header>
-          <div className="p-6 space-y-6">
+          <div className="p-6 space-y-6 flex-1">
             {step === 'setup' ? (
               <form onSubmit={handleGenerate} className="space-y-5">
                 <FileUploadDropzone files={files} onFilesChange={handleFilesChange} />
@@ -151,8 +165,7 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
               </div>
             )}
           </div>
-        </div>
-      </div>
+      </section>
     </div>
   )
 }

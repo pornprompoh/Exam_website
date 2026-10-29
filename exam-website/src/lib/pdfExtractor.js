@@ -1,4 +1,9 @@
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs'
+import * as pdfjsLib from 'pdfjs-dist'
+import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
+
+if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker
+}
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024
 const MAX_TEXT_PER_FILE = 120000
@@ -9,8 +14,10 @@ export async function extractFileText(file) {
   if (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')) return (await file.text()).slice(0, MAX_TEXT_PER_FILE)
   if (!(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) throw new Error(`ไม่รองรับไฟล์ "${file.name}" กรุณาเลือกเฉพาะ PDF หรือ TXT`)
 
-  const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()), disableWorker: true }).promise
+  const loadingTask = pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) })
+  let pdf = null
   try {
+    pdf = await loadingTask.promise
     const pages = []
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber)
@@ -19,12 +26,16 @@ export async function extractFileText(file) {
         const text = content.items.map((item) => item.str).join(' ').trim()
         if (text) pages.push(`(หน้า ${pageNumber})\n${text}`)
       } finally {
-        page.cleanup()
+        page?.cleanup?.()
       }
     }
     return pages.join('\n\n').slice(0, MAX_TEXT_PER_FILE)
   } finally {
-    await pdf.destroy()
+    try {
+      await pdf?.cleanup?.()
+    } finally {
+      await loadingTask?.destroy?.()
+    }
   }
 }
 
