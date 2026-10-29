@@ -12,6 +12,7 @@ const userLinks = [
 const adminLinks = [
   { path: '/admin/categories', label: 'จัดการหมวดหมู่', icon: '📁' },
   { path: '/admin/questions', label: 'จัดการข้อสอบ', icon: '📝' },
+  { path: '/admin/ai-settings', label: 'ตั้งค่า AI', icon: '⚙️' },
   { path: '/admin/users', label: 'จัดการผู้ใช้', icon: '👥', adminOnly: true }
 ]
 

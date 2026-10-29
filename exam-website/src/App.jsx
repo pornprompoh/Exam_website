@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, Link } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
 import Login from './pages/auth/Login'
@@ -193,43 +193,6 @@ function AdminLayout({ userRole }) {
           </p>
         </div>
       </div>
-
-      <nav aria-label="เมนูผู้ดูแล" className="mx-auto mt-5 flex max-w-7xl flex-wrap gap-2 px-4 sm:px-6">
-        <Link
-          to="/admin/categories"
-          className={`rounded-xl border px-4 py-2.5 text-sm font-bold transition-colors ${
-            activeTab === 'categories' ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
-          }`}
-        >
-          📁 หมวดหมู่วิชา
-        </Link>
-        <Link
-          to="/admin/questions"
-          className={`rounded-xl border px-4 py-2.5 text-sm font-bold transition-colors ${
-            activeTab === 'questions' ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
-          }`}
-        >
-          📚 คลังข้อสอบ
-        </Link>
-        <Link
-          to="/admin/ai-settings"
-          className={`rounded-xl border px-4 py-2.5 text-sm font-bold transition-colors ${
-            activeTab === 'ai-settings' ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
-          }`}
-        >
-          ⚙️ ตั้งค่า AI (API Key)
-        </Link>
-        {isFullAdmin && (
-          <Link
-            to="/admin/users"
-            className={`rounded-xl border px-4 py-2.5 text-sm font-bold transition-colors ${
-              activeTab === 'users' ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
-            }`}
-          >
-            👥 ผู้ใช้งาน
-          </Link>
-        )}
-      </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-8">
         {activeTab === 'categories' && <CategoryManager />}
