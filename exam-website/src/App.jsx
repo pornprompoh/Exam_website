@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
 import Login from './pages/auth/Login'
@@ -68,6 +68,19 @@ function ScrollRestoration() {
 function AppRoutes() {
   const { pathname } = useLocation()
   const hasNavbar = pathname !== '/login'
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      const sessionEnded = event === 'SIGNED_OUT' ||
+        (event === 'TOKEN_REFRESHED' && !session) ||
+        (event === 'INITIAL_SESSION' && !session)
+      if (sessionEnded && pathname !== '/login') {
+        navigate('/login', { replace: true })
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [navigate, pathname])
 
   return (
     <>

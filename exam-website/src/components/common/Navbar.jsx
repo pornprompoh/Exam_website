@@ -19,6 +19,7 @@ export default function Navbar({
   showNavPills = true,
   customLeftContent,
   customRightContent,
+  customBottomContent,
   onLogoutClick
 }) {
   const location = useLocation()
@@ -203,6 +204,8 @@ export default function Navbar({
           {!customRightContent && <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className={`p-2 rounded-xl transition-all cursor-pointer ${isAdminArea ? 'bg-slate-950 text-slate-300 border border-slate-800' : 'bg-slate-100 text-slate-700'}`} aria-label="Toggle Menu"><span className="text-base font-bold leading-none">{isMobileMenuOpen ? '✕' : '☰'}</span></button>}
         </div>
       </div>
+
+      {customBottomContent}
 
       {isMobileMenuOpen && showNavPills && (
         <div className={`md:hidden backdrop-blur-md border-b px-4 pt-2 pb-6 space-y-3 animate-fadeIn ${isAdminArea ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-slate-200/80'}`}>
