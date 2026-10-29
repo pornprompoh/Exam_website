@@ -1,134 +1,19 @@
-/* eslint-disable react-hooks/immutability */
-import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
+import { useState } from 'react'
 import Navbar from '../../components/common/Navbar'
 import LoadingScreen from '../../components/common/LoadingScreen'
 import EmptyState from '../../components/common/EmptyState'
 import ConfirmModal from '../../components/common/ConfirmModal'
+import useMistakeBank from '../../hooks/useMistakeBank'
 
 export default function MistakeBank() {
-  const [mistakes, setMistakes] = useState([])
-  const [categories, setCategories] = useState([])
+  const { mistakes, categories, loading, error, resolveMistake } = useMistakeBank()
   const [selectedCategory, setSelectedCategory] = useState('ALL')
-  const [loading, setLoading] = useState(true)
   const [modalTarget, setModalTarget] = useState(null)
-
-  useEffect(() => {
-    fetchMistakes()
-  }, [])
-
-  async function fetchMistakes() {
-    setLoading(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
-      const { data: historyData, error: historyError } = await supabase
-        .from('user_question_history')
-        .select('question_id')
-        .eq('user_id', session.user.id)
-        .eq('last_result', 'wrong')
-
-      if (historyError) {
-        console.error('ไม่สามารถโหลดประวัติผลล่าสุดได้ จะใช้คลังข้อผิดเป็น fallback:', historyError.message)
-      }
-
-      const wrongQuestionIds = historyError
-        ? null
-        : [...new Set((historyData || []).map((item) => item.question_id))]
-      if (wrongQuestionIds && wrongQuestionIds.length === 0) {
-        setMistakes([])
-        setCategories([])
-        return
-      }
-
-      let mistakeQuery = supabase
-        .from('mistake_bank')
-        .select(`
-          id,
-          user_answer,
-          is_resolved,
-          created_at,
-          questions (
-            id,
-            question_text,
-            options,
-            correct_option,
-            explanation,
-            image_url,
-            explanation_image_url,
-            category_id,
-            categories ( name )
-          )
-        `)
-        .eq('user_id', session.user.id)
-        .eq('is_resolved', false)
-        .order('created_at', { ascending: false })
-
-      if (wrongQuestionIds) {
-        mistakeQuery = mistakeQuery.in('question_id', wrongQuestionIds)
-      }
-
-      const { data, error } = await mistakeQuery
-      if (error) throw error
-
-      const validMistakes = (data || []).filter(item => item.questions !== null)
-      setMistakes(validMistakes)
-
-      const catMap = {}
-      validMistakes.forEach(m => {
-        if (m.questions?.categories) {
-          catMap[m.questions.category_id] = m.questions.categories.name
-        }
-      })
-      setCategories(Object.entries(catMap).map(([id, name]) => ({ id, name })))
-    } catch (err) {
-      alert('ดึงข้อมูลคลังข้อผิดไม่สำเร็จ: ' + err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   async function handleConfirmResolve() {
     if (!modalTarget) return
-    const id = modalTarget.id
-    const question = modalTarget.questions
-
     try {
-      let resolveQuery = supabase
-        .from('mistake_bank')
-        .update({ is_resolved: true })
-        .eq('is_resolved', false)
-
-      if (question?.id) {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (session) {
-          resolveQuery = resolveQuery
-            .eq('user_id', session.user.id)
-            .eq('question_id', question.id)
-        } else {
-          resolveQuery = resolveQuery.eq('id', id)
-        }
-      } else {
-        resolveQuery = resolveQuery.eq('id', id)
-      }
-
-      const { error } = await resolveQuery
-
-      if (error) throw error
-
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session && question?.id) {
-        const { error: historyError } = await supabase
-          .from('user_question_history')
-          .update({ last_result: 'correct', last_seen_at: new Date().toISOString() })
-          .eq('user_id', session.user.id)
-          .eq('question_id', question.id)
-
-        if (historyError) throw historyError
-      }
-      
-      setMistakes((prev) => prev.filter((item) => item.questions?.id !== question?.id))
+      await resolveMistake(modalTarget)
       setModalTarget(null)
     } catch (err) {
       alert('ไม่สามารถอัปเดตสถานะได้: ' + err.message)
@@ -184,6 +69,10 @@ export default function MistakeBank() {
 
         {loading ? (
           <LoadingScreen text="กำลังเปิดสมุดคลังข้อผิดพลาด..." />
+        ) : error ? (
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-bold text-red-700">
+            ดึงข้อมูลคลังข้อผิดไม่สำเร็จ: {error.message}
+          </div>
         ) : filteredMistakes.length === 0 ? (
           <EmptyState 
             icon="🎉"

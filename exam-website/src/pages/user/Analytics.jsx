@@ -1,120 +1,10 @@
-/* eslint-disable react-hooks/immutability */
-import { useState, useEffect } from 'react'
-import { supabase } from '../../lib/supabase'
 import Navbar from '../../components/common/Navbar'
 import LoadingScreen from '../../components/common/LoadingScreen'
 import EmptyState from '../../components/common/EmptyState'
+import useAnalytics from '../../hooks/useAnalytics'
 
 export default function Analytics() {
-  const [loading, setLoading] = useState(true)
-  const [sessions, setSessions] = useState([])
-  const [subjectStats, setSubjectStats] = useState([])
-  
-  // KPI Stats
-  const [totalQuestions, setTotalQuestions] = useState(0)
-  const [totalSessions, setTotalSessions] = useState(0)
-  const [overallAccuracy, setOverallAccuracy] = useState(0)
-  const [resolvedRate, setResolvedRate] = useState(0)
-
-  useEffect(() => {
-    fetchAnalyticsData()
-  }, [])
-
-  async function fetchAnalyticsData() {
-    setLoading(true)
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
-      // 1. ดึงประวัติการสอบทั้งหมด (Exam Sessions)
-      const { data: sessionData, error: sessionErr } = await supabase
-        .from('exam_sessions')
-        .select(`
-          *,
-          categories ( name )
-        `)
-        .eq('user_id', session.user.id)
-        .order('completed_at', { ascending: false })
-
-      if (sessionErr) throw sessionErr
-      const validSessions = sessionData || []
-      setSessions(validSessions)
-
-      // 2. ดึงข้อมูลคลังข้อผิดพลาด เพื่อคำนวณอัตราการทบทวน
-      const { data: mistakeData, error: mistakeErr } = await supabase
-        .from('mistake_bank')
-        .select('id, is_resolved')
-        .eq('user_id', session.user.id)
-
-      if (mistakeErr) throw mistakeErr
-
-      const { data: historyData, error: historyErr } = await supabase
-        .from('user_question_history')
-        .select('question_id, seen_count, last_result')
-        .eq('user_id', session.user.id)
-
-      if (historyErr) {
-        console.error('ไม่สามารถโหลดประวัติข้อสอบรายข้อได้ จะใช้สถิติจากรอบสอบแทน:', historyErr.message)
-      }
-
-      // --- คำนวณ Zone 1: KPI Summary ---
-      const totalSess = validSessions.length
-      setTotalSessions(totalSess)
-
-      let totalQ = 0
-      let totalScore = 0
-      validSessions.forEach(s => {
-        totalQ += (s.total_questions || 0)
-        totalScore += (s.score || 0)
-      })
-      const historyQuestionCount = (historyData || []).reduce(
-        (sum, item) => sum + (Number(item.seen_count) || 0),
-        0
-      )
-      setTotalQuestions(historyQuestionCount || totalQ)
-
-      const historyAnswered = (historyData || []).filter(
-        (item) => item.last_result === 'correct' || item.last_result === 'wrong'
-      )
-      const historyCorrect = historyAnswered.filter((item) => item.last_result === 'correct').length
-      const acc = historyAnswered.length > 0
-        ? ((historyCorrect / historyAnswered.length) * 100).toFixed(1)
-        : totalQ > 0
-          ? ((totalScore / totalQ) * 100).toFixed(1)
-          : 0
-      setOverallAccuracy(acc)
-
-      const mistakes = mistakeData || []
-      const totalMistakes = mistakes.length
-      const resolvedMistakes = mistakes.filter(m => m.is_resolved).length
-      const resRate = totalMistakes > 0 ? ((resolvedMistakes / totalMistakes) * 100).toFixed(1) : 100
-      setResolvedRate(resRate)
-
-      // --- คำนวณ Zone 2: Subject Performance ---
-      const catMap = {}
-      validSessions.forEach(s => {
-        const catName = s.categories?.name || 'หมวดวิชาทั่วไป'
-        if (!catMap[catName]) {
-          catMap[catName] = { name: catName, sessions: 0, questions: 0, score: 0 }
-        }
-        catMap[catName].sessions += 1
-        catMap[catName].questions += (s.total_questions || 0)
-        catMap[catName].score += (s.score || 0)
-      })
-
-      const computedSubjects = Object.values(catMap).map(sub => {
-        const subAcc = sub.questions > 0 ? ((sub.score / sub.questions) * 100).toFixed(1) : 0
-        return { ...sub, accuracy: Number(subAcc) }
-      }).sort((a, b) => b.questions - a.questions) // เรียงจากวิชาที่ทำข้อสอบเยอะสุดไปน้อยสุด
-
-      setSubjectStats(computedSubjects)
-
-    } catch (err) {
-      alert('ดึงข้อมูลสถิติไม่สำเร็จ: ' + err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { sessions, subjectStats, totalQuestions, totalSessions, overallAccuracy, resolvedRate, loading, error } = useAnalytics()
 
   return (
     <div className="min-h-screen bg-slate-50/70 font-sans text-slate-800 pb-24 overflow-x-hidden">
@@ -124,6 +14,10 @@ export default function Analytics() {
         
         {loading ? (
           <LoadingScreen text="กำลังคำนวณสถิติและวิเคราะห์ข้อมูลการสอบของคุณ..." />
+        ) : error ? (
+          <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-bold text-red-700">
+            ดึงข้อมูลสถิติไม่สำเร็จ: {error.message}
+          </div>
         ) : sessions.length === 0 ? (
           <EmptyState 
             icon="📊"

@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { generateExamQuestions } from '../../lib/aiService'
+import FileUploadDropzone from './ai/FileUploadDropzone'
+import GeneratorSettings from './ai/GeneratorSettings'
+import ExamPreviewTable from './ai/ExamPreviewTable'
 
 const promptPresets = [
   'หลีกเลี่ยงข้อถูกทุกข้อ/ผิดทุกข้อ',
@@ -23,26 +26,24 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [progress, setProgress] = useState('')
+  const [fileError, setFileError] = useState('')
 
   if (!isOpen) return null
 
   const notify = (type, title, description) => onNotify?.(type, title, description)
   const selectedCategoryName = categories?.find((category) => category.id === selectedCategory)?.name || ''
 
+  const handleFilesChange = (nextFiles, error) => {
+    setFiles(nextFiles)
+    setFileError(error)
+  }
+
   const handleGenerate = async (event) => {
     event.preventDefault()
+    if (fileError) return notify('warning', 'ไฟล์ไม่ถูกต้อง', fileError)
     setLoading(true)
     try {
-      const generated = await generateExamQuestions({
-        files,
-        questionCount,
-        categoryName: selectedCategoryName,
-        promptHint,
-        difficulty,
-        language,
-        distributionMode,
-        onProgress: setProgress
-      })
+      const generated = await generateExamQuestions({ files, questionCount, categoryName: selectedCategoryName, promptHint, difficulty, language, distributionMode, onProgress: setProgress })
       setQuestions(generated)
       setStep('review')
     } catch (error) {
@@ -68,9 +69,7 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
 
   const handleSave = async () => {
     if (!selectedCategory || questions.length === 0) return notify('warning', 'ข้อมูลไม่ครบ', 'กรุณาเลือกวิชาและต้องมีข้อสอบอย่างน้อย 1 ข้อ')
-    if (questions.some((item) => !item.question_text.trim() || item.options.some((option) => !option.trim()))) {
-      return notify('warning', 'ข้อมูลไม่ครบ', 'กรุณาตรวจสอบโจทย์และตัวเลือกให้ครบทุกข้อ')
-    }
+    if (questions.some((item) => !item.question_text.trim() || item.options.some((option) => !option.trim()))) return notify('warning', 'ข้อมูลไม่ครบ', 'กรุณาตรวจสอบโจทย์และตัวเลือกให้ครบทุกข้อ')
     setSaving(true)
     try {
       const payload = questions.map((item) => ({
@@ -106,6 +105,7 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
     setDistributionMode('importance')
     setStep('setup')
     setProgress('')
+    setFileError('')
     onClose()
   }
 
@@ -115,118 +115,39 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
       <div className="fixed inset-0 flex items-stretch justify-end p-0 sm:p-4">
         <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 sm:rounded-2xl shadow-2xl overflow-y-auto relative">
           <header className="p-6 border-b border-slate-800 flex items-center justify-between sticky top-0 z-10 bg-slate-900/95 backdrop-blur-md">
-            <div>
-              <h2 className="text-lg font-black text-white">✨ AI Exam Generator</h2>
-              <p className="text-xs text-slate-400 mt-1">{step === 'setup' ? 'สร้างข้อสอบจากสไลด์หรือเอกสาร' : 'ตรวจสอบและแก้ไขก่อนบันทึก'}</p>
-            </div>
-            <button onClick={handleClose} className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
+            <div><h2 className="text-lg font-black text-white">✨ AI Exam Generator</h2><p className="text-xs text-slate-400 mt-1">{step === 'setup' ? 'สร้างข้อสอบจากสไลด์หรือเอกสาร' : 'ตรวจสอบและแก้ไขก่อนบันทึก'}</p></div>
+            <button type="button" onClick={handleClose} className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-red-500/20 text-slate-300 hover:text-red-400 cursor-pointer">✕</button>
           </header>
-
           <div className="p-6 space-y-6">
             {step === 'setup' ? (
               <form onSubmit={handleGenerate} className="space-y-5">
-                <div>
-                  <label className="text-xs font-bold text-slate-300">ไฟล์เอกสาร (PDF/TXT สูงสุด 10 ไฟล์, ไฟล์ละไม่เกิน 10 MB)</label>
-                  <input type="file" accept=".pdf,.txt,application/pdf,text/plain" multiple required onChange={(event) => setFiles([...event.target.files])} className="mt-2 block w-full rounded-xl border border-dashed border-slate-700 bg-slate-950 p-4 text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-white" />
-                  {files.length > 0 && <p className="mt-2 text-xs text-indigo-300">เลือกแล้ว {files.length} ไฟล์: {files.map((file) => file.name).join(', ')}</p>}
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="text-xs font-bold text-slate-300">หมวดหมู่วิชา
-                    <select value={selectedCategory} onChange={(event) => setSelectedCategory(event.target.value)} required className="mt-2 w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-sm text-white">
-                      <option value="">เลือกหมวดหมู่</option>
-                      {categories?.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                    </select>
-                  </label>
-                  <label className="text-xs font-bold text-slate-300">จำนวนข้อสอบ (1-100)
-                    <input type="number" min="1" max="100" value={questionCount} onChange={(event) => setQuestionCount(event.target.value)} required className="mt-2 w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-sm text-white" />
-                  </label>
-                </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="text-xs font-bold text-slate-300">ระดับความยาก
-                    <select value={difficulty} onChange={(event) => setDifficulty(event.target.value)} className="mt-2 w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-sm text-white">
-                      <option value="balanced">สมดุลมาตรฐาน (ง่าย 30% / ปานกลาง 50% / ยาก 20%)</option>
-                      <option value="easy">ง่าย - ความจำ/พื้นฐาน (Recall/Definition)</option>
-                      <option value="medium">ปานกลาง - ความเข้าใจ/ประยุกต์ใช้ (Application)</option>
-                      <option value="hard">ยาก - วิเคราะห์/แก้ปัญหา (Analytical/Problem-Solving)</option>
-                    </select>
-                  </label>
-                  <label className="text-xs font-bold text-slate-300">ภาษาของข้อสอบ
-                    <select value={language} onChange={(event) => setLanguage(event.target.value)} className="mt-2 w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-sm text-white">
-                      <option value="th_tech">ไทย (คงศัพท์เทคนิคภาษาอังกฤษในวงเล็บ)</option>
-                      <option value="th">ภาษาไทยล้วน</option>
-                      <option value="en">ภาษาอังกฤษล้วน (English)</option>
-                      <option value="original">ตามภาษาต้นฉบับของเอกสาร</option>
-                    </select>
-                  </label>
-                </div>
-                {files.length > 1 && (
-                  <fieldset className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                    <legend className="px-1 text-xs font-bold text-slate-300">การกระจายข้อสอบ</legend>
-                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                      <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-300">
-                        <input type="radio" name="distribution-mode" value="even" checked={distributionMode === 'even'} onChange={(event) => setDistributionMode(event.target.value)} className="mt-0.5 accent-indigo-500" />
-                        <span><strong className="text-white">กระจายเท่าๆ กัน (Evenly Distributed)</strong><br />แบ่งโควตาเฉลี่ยตามจำนวนไฟล์</span>
-                      </label>
-                      <label className="flex cursor-pointer items-start gap-2 text-xs text-slate-300">
-                        <input type="radio" name="distribution-mode" value="importance" checked={distributionMode === 'importance'} onChange={(event) => setDistributionMode(event.target.value)} className="mt-0.5 accent-indigo-500" />
-                        <span><strong className="text-white">ตามความสำคัญ (Importance-based)</strong><br />ให้น้ำหนักตามเนื้อหาและจุดสำคัญ</span>
-                      </label>
-                    </div>
-                  </fieldset>
-                )}
-                <label className="block text-xs font-bold text-slate-300">Prompt Hint เพิ่มเติม (ไม่บังคับ)
-                  <textarea value={promptHint} onChange={(event) => setPromptHint(event.target.value)} rows="4" placeholder="เช่น เน้นความเข้าใจเชิงวิเคราะห์ ระดับยาก..." className="mt-2 w-full rounded-xl bg-slate-950 border border-slate-800 p-3 text-sm text-white placeholder-slate-600" />
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {promptPresets.map((preset) => {
-                    const isSelected = promptHint.split('\n').includes(preset)
-                    return (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => setPromptHint((current) => {
-                          const lines = current.split('\n').filter(Boolean)
-                          return isSelected ? lines.filter((line) => line !== preset).join('\n') : [...lines, preset].join('\n')
-                        })}
-                        className={`rounded-full border px-3 py-1.5 text-xs transition-colors cursor-pointer ${isSelected ? 'border-indigo-400 bg-indigo-500/20 text-indigo-200' : 'border-slate-700 bg-slate-800 text-slate-300 hover:border-indigo-500 hover:text-white'}`}
-                      >
-                        {isSelected ? '✓ ' : '+ '}{preset}
-                      </button>
-                    )
-                  })}
-                </div>
+                <FileUploadDropzone files={files} onFilesChange={handleFilesChange} />
+                {fileError && <p className="text-xs font-bold text-red-400">{fileError}</p>}
+                <GeneratorSettings
+                  categories={categories}
+                  selectedCategory={selectedCategory}
+                  questionCount={questionCount}
+                  difficulty={difficulty}
+                  language={language}
+                  distributionMode={distributionMode}
+                  filesLength={files.length}
+                  promptHint={promptHint}
+                  promptPresets={promptPresets}
+                  onCategoryChange={setSelectedCategory}
+                  onQuestionCountChange={setQuestionCount}
+                  onDifficultyChange={setDifficulty}
+                  onLanguageChange={setLanguage}
+                  onDistributionChange={setDistributionMode}
+                  onPromptHintChange={setPromptHint}
+                />
                 {loading && <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4 text-sm text-indigo-200">⏳ {progress || 'กำลังประมวลผล...'}</div>}
                 <button type="submit" disabled={loading} className="w-full rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-3 font-bold text-white disabled:opacity-50 cursor-pointer">{loading ? 'กำลังสร้างข้อสอบ...' : '✨ สร้างข้อสอบด้วย AI'}</button>
               </form>
             ) : (
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="text-sm font-bold text-white">ตรวจทานแล้ว {questions.length} ข้อ <span className="text-xs font-normal text-slate-400">(แหล่งที่มาใช้ตรวจสอบเท่านั้น จะไม่ถูกบันทึก)</span></div>
-                  <button onClick={() => setStep('setup')} className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-bold text-slate-300 cursor-pointer">← สร้างใหม่</button>
-                </div>
-                {questions.map((item, index) => (
-                  <div key={`${index}-${item.source_topic}`} className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <span className="text-xs font-black text-indigo-300">ข้อที่ {index + 1}</span>
-                      <button onClick={() => setQuestions((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="text-xs text-red-400 hover:text-red-300 cursor-pointer">ลบข้อนี้</button>
-                    </div>
-                    <input value={item.question_text} onChange={(event) => updateQuestion(index, 'question_text', event.target.value)} className="w-full rounded-lg border border-slate-800 bg-slate-900 p-3 text-sm text-white" placeholder="โจทย์คำถาม" />
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {item.options.map((option, optionIndex) => (
-                        <div key={optionIndex} className="flex items-center gap-2">
-                          <input type="radio" name={`correct-${index}`} checked={Number(item.correct_option) === optionIndex} onChange={() => updateQuestion(index, 'correct_option', optionIndex)} className="accent-emerald-500" />
-                          <input value={option} onChange={(event) => updateOption(index, optionIndex, event.target.value)} className="min-w-0 flex-1 rounded-lg border border-slate-800 bg-slate-900 p-2 text-sm text-white" placeholder={`ตัวเลือก ${optionIndex + 1}`} />
-                        </div>
-                      ))}
-                    </div>
-                    <textarea value={item.explanation} onChange={(event) => updateQuestion(index, 'explanation', event.target.value)} rows="2" className="w-full rounded-lg border border-slate-800 bg-slate-900 p-2 text-sm text-white" placeholder="คำอธิบายเฉลย" />
-                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-2 text-xs text-amber-200">แหล่งที่มา: {item.source_topic || 'ไม่ระบุ'}</div>
-                  </div>
-                ))}
-                <div className="flex justify-end gap-3 border-t border-slate-800 pt-4">
-                  <button onClick={handleClose} className="rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-slate-300 cursor-pointer">ยกเลิก</button>
-                  <button onClick={handleSave} disabled={saving || questions.length === 0} className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50 cursor-pointer">{saving ? 'กำลังบันทึก...' : `ยืนยันนำเข้า ${questions.length} ข้อ`}</button>
-                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3"><div className="text-sm font-bold text-white">ตรวจทานแล้ว {questions.length} ข้อ <span className="text-xs font-normal text-slate-400">(แหล่งที่มาใช้ตรวจสอบเท่านั้น จะไม่ถูกบันทึก)</span></div><button type="button" onClick={() => setStep('setup')} className="rounded-xl bg-slate-800 px-3 py-2 text-xs font-bold text-slate-300 cursor-pointer">← สร้างใหม่</button></div>
+                <ExamPreviewTable questions={questions} onChangeQuestion={updateQuestion} onChangeOption={updateOption} onRemoveQuestion={(index) => setQuestions((current) => current.filter((_, itemIndex) => itemIndex !== index))} />
+                <div className="flex justify-end gap-3 border-t border-slate-800 pt-4"><button type="button" onClick={handleClose} className="rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-slate-300 cursor-pointer">ยกเลิก</button><button type="button" onClick={handleSave} disabled={saving || questions.length === 0} className="rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 text-sm font-black text-white disabled:opacity-50 cursor-pointer">{saving ? 'กำลังบันทึก...' : `ยืนยันนำเข้า ${questions.length} ข้อ`}</button></div>
               </div>
             )}
           </div>

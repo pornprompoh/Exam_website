@@ -140,10 +140,18 @@ npm install
 ```env
 VITE_SUPABASE_URL=https://your-project-id.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_GEMINI_API_KEY=your-gemini-api-key
 ```
 
-`VITE_GEMINI_API_KEY` จำเป็นเฉพาะเมื่อจะใช้ฟังก์ชันสร้างข้อสอบด้วย AI
+ตั้งค่าตัวแปรต่อไปนี้ใน environment ของ Vercel สำหรับ API Function (ห้ามเติม prefix `VITE_` ให้ Gemini key):
+
+```env
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_MODEL=gemini-2.0-flash
+```
+
+Gemini key ถูกใช้งานเฉพาะใน `api/generate-exam.js` ฝั่ง server และ endpoint จะตรวจสอบ Supabase access token ก่อนเรียก Gemini ห้ามใช้ `VITE_GEMINI_API_KEY` เพราะตัวแปรที่มี prefix `VITE_` จะถูกรวมไว้ใน bundle ที่ browser เข้าถึงได้ หากเคย deploy key ผ่านตัวแปรดังกล่าว ให้เพิกถอนและสร้าง key ใหม่
 
 ### 4. เริ่มเซิร์ฟเวอร์สำหรับพัฒนา
 
@@ -152,6 +160,8 @@ npm run dev
 ```
 
 จากนั้นเปิด `http://localhost:5173`
+
+การทดสอบ AI endpoint ในเครื่องต้องรันผ่าน Vercel Functions ด้วย `vercel dev` และกำหนด environment ข้างต้นให้ local environment
 
 ## คำสั่งที่ใช้บ่อย
 

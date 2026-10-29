@@ -5,13 +5,19 @@ import ConfirmModal from '../../components/common/ConfirmModal'
 import BulkImportModal from '../../components/admin/BulkImportModal'
 import AIExamGeneratorModal from '../../components/admin/AIExamGeneratorModal'
 import QuestionForm from '../../components/admin/QuestionForm'
-import QuestionList from '../../components/admin/QuestionList'
+import QuestionTable from '../../components/admin/QuestionTable'
+import QuestionFilterBar from '../../components/admin/QuestionFilterBar'
 import PaginationBar from '../../components/admin/PaginationBar'
+import useCategories from '../../hooks/useCategories'
 
 const ITEMS_PER_PAGE = 10
 
 export default function QuestionManager() {
-  const [categories, setCategories] = useState([])
+  const { categories, refetch: refetchCategories } = useCategories({
+    activeOnly: true,
+    includeQuestionCounts: true,
+    enabled: false
+  })
   const [questions, setQuestions] = useState([])
   const [selectedCat, setSelectedCat] = useState('')
   const [loading, setLoading] = useState(true)
@@ -34,6 +40,7 @@ export default function QuestionManager() {
 
   // 🌟 State ใหม่สำหรับ Bulk Actions (จัดการข้อสอบแบบกลุ่ม)
   const [selectedIds, setSelectedIds] = useState([])
+  const [questionSearch, setQuestionSearch] = useState('')
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
 
   const [modalConfig, setModalConfig] = useState({
@@ -59,11 +66,24 @@ export default function QuestionManager() {
         const { data } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
         const role = data?.role || 'creator'
         setUserRole(role)
-        fetchCategories(role, session.user.id)
+        try {
+          const validCats = await refetchCategories({ createdBy: role === 'admin' ? null : session.user.id })
+          if (validCats.length > 0) {
+            setSelectedCat(validCats[0].id)
+            setCurrentPage(1)
+            fetchQuestions(validCats[0].id, 1, 'asc', role, session.user.id)
+          } else {
+            setQuestions([])
+            setLoading(false)
+          }
+        } catch (error) {
+          console.error('ไม่สามารถโหลดหมวดหมู่ได้:', error)
+          setLoading(false)
+        }
       }
     }
     initUserAndCategories()
-  }, [])
+  }, [refetchCategories])
 
   useEffect(() => {
     if (highlightedNum !== null && questions.length > 0) {
@@ -75,26 +95,6 @@ export default function QuestionManager() {
       return () => clearTimeout(timer)
     }
   }, [questions, highlightedNum])
-
-  async function fetchCategories(role = userRole, userId = currentUserId) {
-    try {
-      let query = supabase.from('categories').select('*').eq('is_active', true)
-      if (role !== 'admin' && userId) query = query.eq('created_by', userId)
-      const { data, error } = await query.order('name')
-      if (error) throw error
-      
-      const validCats = data || []
-      setCategories(validCats)
-      if (validCats.length > 0) {
-        setSelectedCat(validCats[0].id)
-        setCurrentPage(1)
-        fetchQuestions(validCats[0].id, 1, 'asc', role, userId)
-      } else {
-        setQuestions([])
-        setLoading(false)
-      }
-    } catch (err) { console.error(err) }
-  }
 
   async function fetchQuestions(catId, page = currentPage, order = sortOrder, role = userRole, userId = currentUserId) {
     if (!catId) return
@@ -426,36 +426,23 @@ export default function QuestionManager() {
           </div>
         </div>
         
-        <div className="grid grid-cols-2 sm:flex items-stretch sm:items-center gap-3 w-full lg:w-auto shrink-0">
-          {categories.length > 0 ? (
-            <select
-              value={selectedCat}
-              onChange={(e) => handleCategoryChange(e.target.value)}
-              className="col-span-2 sm:col-auto flex-1 sm:w-56 px-4 py-3 bg-slate-950 border border-slate-800 rounded-2xl text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
-            >
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>📖 {cat.name}</option>
-              ))}
-            </select>
-          ) : (
-            <div className="px-4 py-3 bg-slate-950 border border-red-500/30 text-red-400 rounded-2xl text-xs font-bold">
-              ⚠️ ยังไม่มีหมวดหมู่วิชาของตนเอง
-            </div>
-          )}
-
-          <button onClick={handleOpenCreateForm} disabled={categories.length === 0} className="flex-1 sm:flex-initial px-3 sm:px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 text-white rounded-2xl text-sm font-bold transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 shrink-0 h-full">
+        <QuestionFilterBar
+          categories={categories}
+          selectedCategory={selectedCat}
+          onCategoryChange={handleCategoryChange}
+          searchValue={questionSearch}
+          onSearchChange={setQuestionSearch}
+        >
+          <button onClick={handleOpenCreateForm} disabled={categories.length === 0} className="flex-1 px-3 sm:px-5 py-3 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-30 text-white rounded-2xl text-sm font-bold transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 shrink-0">
             <span>➕</span><span>สร้างโจทย์ใหม่</span>
           </button>
-
-          <button onClick={() => setShowBulkModal(true)} disabled={categories.length === 0} className="flex-1 sm:flex-initial px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-30 border border-indigo-500/30 text-indigo-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 h-full">
-            <span className="hidden sm:inline">⚡ นำเข้าชุดใหญ่</span>
-            <span className="sm:hidden">⚡ AI Bulk</span>
+          <button onClick={() => setShowBulkModal(true)} disabled={categories.length === 0} className="flex-1 px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-30 border border-indigo-500/30 text-indigo-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0">
+            <span className="hidden sm:inline">⚡ นำเข้าชุดใหญ่</span><span className="sm:hidden">⚡ AI Bulk</span>
           </button>
-
-          <button onClick={() => setShowAIGeneratorModal(true)} disabled={categories.length === 0} className="flex-1 sm:flex-initial px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 border border-emerald-500/30 text-emerald-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0 h-full">
+          <button onClick={() => setShowAIGeneratorModal(true)} disabled={categories.length === 0} className="flex-1 px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 border border-emerald-500/30 text-emerald-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0">
             <span>✨ AI จากเอกสาร</span>
           </button>
-        </div>
+        </QuestionFilterBar>
       </div>
 
       {categories.length === 0 ? (
@@ -471,8 +458,9 @@ export default function QuestionManager() {
         <div className="w-full space-y-6">
           
           {/* 🌟 ส่ง Props สำหรับ Bulk Actions ไปยัง QuestionList */}
-          <QuestionList
+          <QuestionTable
             questions={questions}
+            searchValue={questionSearch}
             loading={loading}
             userRole={userRole}
             totalCount={totalCount}
