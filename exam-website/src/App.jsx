@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate, Link } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 
 import Login from './pages/auth/Login'
@@ -11,6 +11,7 @@ import Profile from './pages/user/Profile'
 import CategoryManager from './pages/admin/CategoryManager'
 import QuestionManager from './pages/admin/QuestionManager'
 import UserManager from './pages/admin/UserManager'
+import AISettings from './pages/admin/AISettings'
 
 import Navbar from './components/common/Navbar'
 // 🌟 1. นำเข้า ModalProvider และ useModal
@@ -162,7 +163,7 @@ function AdminLayout({ userRole }) {
     })
   }
 
-  if (location.pathname === '/admin' || (activeTab !== 'categories' && activeTab !== 'questions' && activeTab !== 'users')) {
+  if (location.pathname === '/admin' || !['categories', 'questions', 'users', 'ai-settings'].includes(activeTab)) {
     return <Navigate to="/admin/categories" replace />
   }
 
@@ -182,19 +183,59 @@ function AdminLayout({ userRole }) {
             {activeTab === 'categories' && 'ศูนย์จัดการหมวดหมู่วิชา (Category Manager)'}
             {activeTab === 'questions' && 'ศูนย์จัดการคลังข้อสอบ (Question Manager)'}
             {activeTab === 'users' && 'ศูนย์จัดการผู้ใช้งานและกำหนดสิทธิ์ (User Manager)'}
+            {activeTab === 'ai-settings' && 'ตั้งค่า AI (Gemini API Key)'}
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-1">
             {activeTab === 'categories' && (isFullAdmin ? 'เพิ่ม ลบ หรือแก้ไขชื่อหมวดหมู่วิชาสอบทั้งหมดในระบบ' : 'สร้างและจัดการชื่อหมวดหมู่วิชาสำหรับเก็บข้อสอบของคุณ')}
             {activeTab === 'questions' && 'สร้างโจทย์คำถามใหม่ เพิ่มรูปประกอบ และนำเข้าข้อสอบชุดใหญ่ด้วย AI'}
             {activeTab === 'users' && 'ดูรายชื่อผู้ใช้งานทั้งหมดในระบบ พร้อมกำหนดสิทธิ์แต่งตั้งผู้ช่วยสร้างข้อสอบหรือแอดมิน'}
+            {activeTab === 'ai-settings' && 'จัดการ API Key ที่ใช้สร้างข้อสอบด้วย Gemini บนเบราว์เซอร์นี้'}
           </p>
         </div>
       </div>
+
+      <nav aria-label="เมนูผู้ดูแล" className="mx-auto mt-5 flex max-w-7xl flex-wrap gap-2 px-4 sm:px-6">
+        <Link
+          to="/admin/categories"
+          className={`rounded-xl border px-4 py-2.5 text-sm font-bold transition-colors ${
+            activeTab === 'categories' ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
+          }`}
+        >
+          📁 หมวดหมู่วิชา
+        </Link>
+        <Link
+          to="/admin/questions"
+          className={`rounded-xl border px-4 py-2.5 text-sm font-bold transition-colors ${
+            activeTab === 'questions' ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
+          }`}
+        >
+          📚 คลังข้อสอบ
+        </Link>
+        <Link
+          to="/admin/ai-settings"
+          className={`rounded-xl border px-4 py-2.5 text-sm font-bold transition-colors ${
+            activeTab === 'ai-settings' ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
+          }`}
+        >
+          ⚙️ ตั้งค่า AI (API Key)
+        </Link>
+        {isFullAdmin && (
+          <Link
+            to="/admin/users"
+            className={`rounded-xl border px-4 py-2.5 text-sm font-bold transition-colors ${
+              activeTab === 'users' ? 'border-indigo-500/40 bg-indigo-500/10 text-indigo-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-white'
+            }`}
+          >
+            👥 ผู้ใช้งาน
+          </Link>
+        )}
+      </nav>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-8">
         {activeTab === 'categories' && <CategoryManager />}
         {activeTab === 'questions' && <QuestionManager />}
         {activeTab === 'users' && isFullAdmin && <UserManager />}
+        {activeTab === 'ai-settings' && <AISettings />}
       </main>
 
     </div>

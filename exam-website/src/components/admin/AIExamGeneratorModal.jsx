@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { generateExamQuestions } from '../../lib/aiService'
+import { getGeminiApiKey } from '../../lib/geminiApiKey'
 import FileUploadDropzone from './ai/FileUploadDropzone'
 import GeneratorSettings from './ai/GeneratorSettings'
 import ExamPreviewTable from './ai/ExamPreviewTable'
+import AIKeyRequiredModal from './AIKeyRequiredModal'
 
 const promptPresets = [
   'หลีกเลี่ยงข้อถูกทุกข้อ/ผิดทุกข้อ',
@@ -13,7 +15,7 @@ const promptPresets = [
   'มีเฉลยอธิบายละเอียดทุกตัวเลือก'
 ]
 
-export default function AIExamGeneratorModal({ isOpen, onClose, categories, categoryId, currentUserId, onSuccess, onNotify }) {
+export default function AIExamGeneratorModal({ isOpen, onClose, categories, categoryId, currentUserId, onSuccess, onNotify, onGoToSettings }) {
   const [selectedCategory, setSelectedCategory] = useState(categoryId || categories?.[0]?.id || '')
   const [files, setFiles] = useState([])
   const [questionCount, setQuestionCount] = useState(10)
@@ -27,6 +29,7 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
   const [saving, setSaving] = useState(false)
   const [progress, setProgress] = useState('')
   const [fileError, setFileError] = useState('')
+  const [showKeyRequired, setShowKeyRequired] = useState(false)
 
   if (!isOpen) return null
 
@@ -36,10 +39,25 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
   const handleFilesChange = (nextFiles, error) => {
     setFiles(nextFiles)
     setFileError(error)
+    if (error || nextFiles.length > 0) setShowKeyRequired(false)
+  }
+
+  const requireApiKey = () => {
+    setShowKeyRequired(true)
   }
 
   const handleGenerate = async (event) => {
     event.preventDefault()
+    try {
+      if (!getGeminiApiKey()) {
+        requireApiKey()
+        return
+      }
+    } catch (error) {
+      setFileError(error.message)
+      requireApiKey()
+      return
+    }
     if (fileError) return notify('warning', 'ไฟล์ไม่ถูกต้อง', fileError)
     setLoading(true)
     try {
@@ -106,6 +124,7 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
     setStep('setup')
     setProgress('')
     setFileError('')
+    setShowKeyRequired(false)
     onClose()
   }
 
@@ -135,7 +154,7 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
           <div className="p-6 space-y-6 flex-1">
             {step === 'setup' ? (
               <form onSubmit={handleGenerate} className="space-y-5">
-                <FileUploadDropzone files={files} onFilesChange={handleFilesChange} />
+                <FileUploadDropzone files={files} onFilesChange={handleFilesChange} onRequireApiKey={requireApiKey} />
                 {fileError && <p className="text-xs font-bold text-red-400">{fileError}</p>}
                 <GeneratorSettings
                   categories={categories}
@@ -166,6 +185,12 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
             )}
           </div>
       </section>
+      {showKeyRequired && (
+        <AIKeyRequiredModal
+          onClose={() => setShowKeyRequired(false)}
+          onGoToSettings={onGoToSettings}
+        />
+      )}
     </div>
   )
 }
