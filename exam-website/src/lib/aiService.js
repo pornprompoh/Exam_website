@@ -1,8 +1,7 @@
 import { extractFileText, validateFileCount } from './pdfExtractor'
 import { getGeminiApiKey } from './geminiApiKey'
+import { getGeminiModel } from './geminiModels'
 
-const GEMINI_MODEL = 'gemini-3.8-flash'
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 const PROGRESS_STEP_DELAY_MS = 450
 
 function waitForProgressTransition() {
@@ -54,6 +53,7 @@ export async function generateExamQuestions({
 }) {
   const apiKey = getGeminiApiKey()
   if (!apiKey) throw new Error('ยังไม่ได้ตั้งค่า Gemini API Key กรุณาไปตั้งค่าในเมนูผู้ดูแลก่อน')
+  const selectedModel = getGeminiModel()
 
   validateFileCount(files)
   if (!Number.isInteger(Number(questionCount)) || Number(questionCount) < 1 || Number(questionCount) > 100) {
@@ -108,7 +108,8 @@ ${sourceParts.join('\n\n')}`
   onProgress?.(2, 'กำลังจัดหมวดหมู่และส่งเนื้อหาให้ Gemini วิเคราะห์...')
   await waitForProgressTransition()
   onProgress?.(3, 'Gemini กำลังร่างโจทย์ ชอยส์ตัวเลือก และคำอธิบาย...')
-  const responsePromise = fetch(`${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`, {
+  const modelUrl = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${encodeURIComponent(apiKey)}`
+  const responsePromise = fetch(modelUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

@@ -4,6 +4,12 @@ import {
   getGeminiApiKey,
   saveGeminiApiKey
 } from '../../lib/geminiApiKey'
+import {
+  DEFAULT_GEMINI_MODEL,
+  GEMINI_MODELS,
+  getGeminiModel,
+  saveGeminiModel
+} from '../../lib/geminiModels'
 
 function maskApiKey(apiKey) {
   if (!apiKey) return ''
@@ -15,12 +21,23 @@ export default function AISettings() {
   const [initialState] = useState(() => {
     try {
       const currentKey = getGeminiApiKey()
-      return { savedKey: currentKey, isEditing: !currentKey, error: '' }
+      return {
+        savedKey: currentKey,
+        isEditing: !currentKey,
+        selectedModel: getGeminiModel(),
+        error: ''
+      }
     } catch (storageError) {
-      return { savedKey: '', isEditing: true, error: storageError.message }
+      return {
+        savedKey: '',
+        isEditing: true,
+        selectedModel: DEFAULT_GEMINI_MODEL,
+        error: storageError.message
+      }
     }
   })
   const [savedKey, setSavedKey] = useState(initialState.savedKey)
+  const [selectedModel, setSelectedModel] = useState(initialState.selectedModel)
   const [draftKey, setDraftKey] = useState('')
   const [isEditing, setIsEditing] = useState(initialState.isEditing)
   const [showKey, setShowKey] = useState(false)
@@ -54,6 +71,19 @@ export default function AISettings() {
       setNotice('ลบ Gemini API Key ออกจากเบราว์เซอร์นี้แล้ว')
     } catch (clearError) {
       setError(clearError.message)
+    }
+  }
+
+  const handleModelChange = (event) => {
+    const model = event.target.value
+    setError('')
+    setNotice('')
+    try {
+      saveGeminiModel(model)
+      setSelectedModel(model)
+      setNotice('บันทึกโมเดล Gemini ที่เลือกแล้ว')
+    } catch (modelError) {
+      setError(modelError.message)
     }
   }
 
@@ -160,6 +190,27 @@ export default function AISettings() {
             ลบ/ล้างคีย์
           </button>
         )}
+
+        <div className="mt-6 space-y-3 rounded-2xl border border-slate-800 bg-slate-950/60 p-4">
+          <label htmlFor="gemini-model" className="block text-sm font-bold text-slate-200">
+            โมเดล Gemini
+          </label>
+          <select
+            id="gemini-model"
+            value={selectedModel}
+            onChange={handleModelChange}
+            className="w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white outline-none transition-colors focus:border-indigo-500"
+          >
+            {GEMINI_MODELS.map((model) => (
+              <option key={model.value} value={model.value}>
+                {model.label} — {model.description}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs leading-relaxed text-slate-400">
+            ใช้ API Key เดียวกันได้ทุกโมเดล หากโมเดลใดติด Rate Limit สามารถสลับมาใช้โมเดลอื่นเพื่อทำงานต่อได้ทันที
+          </p>
+        </div>
 
         {error && <p role="alert" className="mt-4 rounded-xl border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-300">{error}</p>}
         {notice && <p role="status" className="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-3 text-sm text-emerald-300">{notice}</p>}
