@@ -76,8 +76,8 @@ export async function generateExamQuestions({
     `${file.name}: ${Math.floor(Number(questionCount) / files.length) + (index < Number(questionCount) % files.length ? 1 : 0)} ข้อ`
   ))
   const sourceParts = []
+  onProgress?.(1, 'กำลังอ่านและสกัดข้อความจากเอกสาร (PDF/TXT)...')
   for (let index = 0; index < files.length; index += 1) {
-    onProgress?.(`กำลังอ่านไฟล์ ${index + 1}/${files.length}: ${files[index].name}`)
     const text = await extractFileText(files[index])
     if (!text.trim()) throw new Error(`ไม่พบข้อความในไฟล์ "${files[index].name}"`)
     sourceParts.push(`===== ไฟล์: ${files[index].name} =====\n${text}`)
@@ -99,8 +99,9 @@ ${promptHint ? `คำแนะนำเพิ่มเติมจากผู�
 เอกสาร:
 ${sourceParts.join('\n\n')}`
 
-  onProgress?.('กำลังให้ AI วิเคราะห์เอกสารและสร้างข้อสอบ...')
-  const response = await fetch(`${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`, {
+  onProgress?.(2, 'กำลังจัดหมวดหมู่และส่งเนื้อหาให้ Gemini วิเคราะห์...')
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  const responsePromise = fetch(`${GEMINI_API_URL}?key=${encodeURIComponent(apiKey)}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -114,7 +115,10 @@ ${sourceParts.join('\n\n')}`
     })
   })
 
+  onProgress?.(3, 'Gemini กำลังร่างโจทย์ ชอยส์ตัวเลือก และคำอธิบาย...')
+  const response = await responsePromise
   const responseText = await response.text()
+  onProgress?.(4, 'กำลังตรวจสอบโครงสร้าง JSON และจัดเรียงตาราง...')
   const payload = parseResponse(responseText)
 
   if (!response.ok) {
