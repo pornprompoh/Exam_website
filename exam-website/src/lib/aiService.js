@@ -1,6 +1,6 @@
 import { extractFileText, validateFileCount } from './pdfExtractor'
 import { getGeminiApiKey } from './geminiApiKey'
-import { getGeminiModel } from './geminiModels'
+import { DEFAULT_GEMINI_MODEL, getGeminiModel } from './geminiModels'
 
 const PROGRESS_STEP_DELAY_MS = 450
 
@@ -53,7 +53,7 @@ export async function generateExamQuestions({
 }) {
   const apiKey = getGeminiApiKey()
   if (!apiKey) throw new Error('ยังไม่ได้ตั้งค่า Gemini API Key กรุณาไปตั้งค่าในเมนูผู้ดูแลก่อน')
-  const selectedModel = getGeminiModel()
+  const selectedModel = getGeminiModel() || DEFAULT_GEMINI_MODEL
 
   validateFileCount(files)
   if (!Number.isInteger(Number(questionCount)) || Number(questionCount) < 1 || Number(questionCount) > 100) {

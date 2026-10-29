@@ -1,21 +1,26 @@
 export const GEMINI_MODEL_STORAGE_KEY = 'admin_gemini_model'
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite'
 
 export const GEMINI_MODELS = [
   {
-    value: 'gemini-2.5-flash',
-    label: 'Gemini Flash',
-    description: 'แนะนำ · มาตรฐาน รวดเร็ว'
+    value: 'gemini-3.5-flash-lite',
+    label: 'Gemini 3.5 Flash Lite',
+    description: 'แนะนำ · โควตาสูง เหมาะกับการอ่านเอกสารและสร้างข้อสอบจำนวนมาก'
   },
   {
-    value: 'gemini-2.5-flash-lite',
-    label: 'Gemini Flash Lite',
-    description: 'โควตาสูง · เหมาะกับการสร้างจำนวนมากหรือใช้สำรอง'
+    value: 'gemini-3.1-flash-lite',
+    label: 'Gemini 3.1 Flash Lite',
+    description: 'สำรอง · ในภาพมีโควตา 500 RPD เหมาะเมื่อต้องสลับจากโมเดลหลัก'
   },
   {
-    value: 'gemini-2.5-pro',
-    label: 'Gemini Pro',
-    description: 'วิเคราะห์ลึก · เหมาะกับข้อสอบยากและซับซ้อน'
+    value: 'gemini-3.8-flash',
+    label: 'Gemini 3.8 Flash',
+    description: 'มาตรฐาน · รวดเร็วและวิเคราะห์ได้ดี'
+  },
+  {
+    value: 'gemini-3.6-flash',
+    label: 'Gemini 3.6 Flash',
+    description: 'ทางเลือกสำรอง · เหมาะกับงานอ่านและวิเคราะห์เอกสาร'
   }
 ]
 
@@ -26,7 +31,9 @@ export function getGeminiModel() {
 
   try {
     const storedModel = window.localStorage.getItem(GEMINI_MODEL_STORAGE_KEY)
-    return supportedModels.has(storedModel) ? storedModel : DEFAULT_GEMINI_MODEL
+    if (supportedModels.has(storedModel)) return storedModel
+    if (storedModel) window.localStorage.setItem(GEMINI_MODEL_STORAGE_KEY, DEFAULT_GEMINI_MODEL)
+    return DEFAULT_GEMINI_MODEL
   } catch {
     throw new Error('ไม่สามารถอ่านการตั้งค่าโมเดล Gemini ได้ กรุณาตรวจสอบการตั้งค่าเบราว์เซอร์')
   }
