@@ -71,12 +71,16 @@ export default function AIExamGeneratorModal({ isOpen, onClose, categories, cate
         files,
         questionCount,
         categoryName: selectedCategoryName,
+        categoryId: selectedCategory,
         promptHint,
         difficulty,
         language,
         distributionMode,
         onProgress: (progressStep, message) => setGenerationProgress({ step: progressStep, message })
       })
+      if (generated.length === 0) {
+        throw new Error('ข้อสอบที่สร้างซ้ำกับคลังเดิมหรือซ้ำกันเอง จึงถูกตัดออกทั้งหมด กรุณาปรับคำแนะนำหรือใช้เอกสารอื่นแล้วลองใหม่')
+      }
       setQuestions(generated)
       setStep('review')
     } catch (error) {
