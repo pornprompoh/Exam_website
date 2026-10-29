@@ -1,9 +1,12 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { getGeminiApiKey } from '../../lib/geminiApiKey'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import BulkImportModal from '../../components/admin/BulkImportModal'
 import AIExamGeneratorModal from '../../components/admin/AIExamGeneratorModal'
+import AIKeyRequiredModal from '../../components/admin/AIKeyRequiredModal'
 import QuestionForm from '../../components/admin/QuestionForm'
 import QuestionTable from '../../components/admin/QuestionTable'
 import QuestionFilterBar from '../../components/admin/QuestionFilterBar'
@@ -13,6 +16,7 @@ import useCategories from '../../hooks/useCategories'
 const ITEMS_PER_PAGE = 10
 
 export default function QuestionManager() {
+  const navigate = useNavigate()
   const { categories, refetch: refetchCategories } = useCategories({
     activeOnly: true,
     includeQuestionCounts: true,
@@ -36,6 +40,7 @@ export default function QuestionManager() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [showAIGeneratorModal, setShowAIGeneratorModal] = useState(false)
+  const [showAIKeyRequired, setShowAIKeyRequired] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   // 🌟 State ใหม่สำหรับ Bulk Actions (จัดการข้อสอบแบบกลุ่ม)
@@ -56,6 +61,24 @@ export default function QuestionManager() {
 
   const closeModal = () => {
     setModalConfig((prev) => ({ ...prev, isOpen: false }))
+  }
+
+  const handleOpenAIGenerator = () => {
+    try {
+      if (!getGeminiApiKey()) {
+        setShowAIKeyRequired(true)
+        return
+      }
+      setShowAIGeneratorModal(true)
+    } catch (error) {
+      showModal('warning', 'ไม่สามารถตรวจสอบ API Key ได้', error.message)
+    }
+  }
+
+  const handleGoToAISettings = () => {
+    setShowAIKeyRequired(false)
+    setShowAIGeneratorModal(false)
+    navigate('/admin/ai-settings')
   }
 
   useEffect(() => {
@@ -347,6 +370,13 @@ export default function QuestionManager() {
         onClose={closeModal}
       />
 
+      {showAIKeyRequired && (
+        <AIKeyRequiredModal
+          onClose={() => setShowAIKeyRequired(false)}
+          onGoToSettings={handleGoToAISettings}
+        />
+      )}
+
       <BulkImportModal 
         isOpen={showBulkModal} 
         onClose={() => setShowBulkModal(false)} 
@@ -367,6 +397,7 @@ export default function QuestionManager() {
         categoryId={selectedCat}
         currentUserId={currentUserId}
         onNotify={showModal}
+        onGoToSettings={handleGoToAISettings}
         onSuccess={() => {
           setCurrentPage(1)
           setSelectedIds([])
@@ -439,7 +470,7 @@ export default function QuestionManager() {
           <button onClick={() => setShowBulkModal(true)} disabled={categories.length === 0} className="flex-1 px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 disabled:opacity-30 border border-indigo-500/30 text-indigo-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0">
             <span className="hidden sm:inline">⚡ นำเข้าชุดใหญ่</span><span className="sm:hidden">⚡ AI Bulk</span>
           </button>
-          <button onClick={() => setShowAIGeneratorModal(true)} disabled={categories.length === 0} className="flex-1 px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 border border-emerald-500/30 text-emerald-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0">
+          <button onClick={handleOpenAIGenerator} disabled={categories.length === 0} className="flex-1 px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 border border-emerald-500/30 text-emerald-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0">
             <span>✨ AI จากเอกสาร</span>
           </button>
         </QuestionFilterBar>

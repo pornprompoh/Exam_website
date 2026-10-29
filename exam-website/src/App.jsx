@@ -11,6 +11,7 @@ import Profile from './pages/user/Profile'
 import CategoryManager from './pages/admin/CategoryManager'
 import QuestionManager from './pages/admin/QuestionManager'
 import UserManager from './pages/admin/UserManager'
+import AISettings from './pages/admin/AISettings'
 
 import Navbar from './components/common/Navbar'
 // 🌟 1. นำเข้า ModalProvider และ useModal
@@ -162,7 +163,7 @@ function AdminLayout({ userRole }) {
     })
   }
 
-  if (location.pathname === '/admin' || (activeTab !== 'categories' && activeTab !== 'questions' && activeTab !== 'users')) {
+  if (location.pathname === '/admin' || !['categories', 'questions', 'users', 'ai-settings'].includes(activeTab)) {
     return <Navigate to="/admin/categories" replace />
   }
 
@@ -182,11 +183,13 @@ function AdminLayout({ userRole }) {
             {activeTab === 'categories' && 'ศูนย์จัดการหมวดหมู่วิชา (Category Manager)'}
             {activeTab === 'questions' && 'ศูนย์จัดการคลังข้อสอบ (Question Manager)'}
             {activeTab === 'users' && 'ศูนย์จัดการผู้ใช้งานและกำหนดสิทธิ์ (User Manager)'}
+            {activeTab === 'ai-settings' && 'ตั้งค่า AI (Gemini API Key)'}
           </h1>
           <p className="text-slate-400 text-xs sm:text-sm mt-1">
             {activeTab === 'categories' && (isFullAdmin ? 'เพิ่ม ลบ หรือแก้ไขชื่อหมวดหมู่วิชาสอบทั้งหมดในระบบ' : 'สร้างและจัดการชื่อหมวดหมู่วิชาสำหรับเก็บข้อสอบของคุณ')}
             {activeTab === 'questions' && 'สร้างโจทย์คำถามใหม่ เพิ่มรูปประกอบ และนำเข้าข้อสอบชุดใหญ่ด้วย AI'}
             {activeTab === 'users' && 'ดูรายชื่อผู้ใช้งานทั้งหมดในระบบ พร้อมกำหนดสิทธิ์แต่งตั้งผู้ช่วยสร้างข้อสอบหรือแอดมิน'}
+            {activeTab === 'ai-settings' && 'จัดการ API Key ที่ใช้สร้างข้อสอบด้วย Gemini บนเบราว์เซอร์นี้'}
           </p>
         </div>
       </div>
@@ -195,6 +198,7 @@ function AdminLayout({ userRole }) {
         {activeTab === 'categories' && <CategoryManager />}
         {activeTab === 'questions' && <QuestionManager />}
         {activeTab === 'users' && isFullAdmin && <UserManager />}
+        {activeTab === 'ai-settings' && <AISettings />}
       </main>
 
     </div>
