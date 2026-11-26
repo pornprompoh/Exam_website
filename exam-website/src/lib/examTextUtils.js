@@ -308,6 +308,355 @@ export function normalizeSourceQuestionNumber(value) {
 }
 
 /**
+ * Normalize a section/chapter/set label for Pass 2 Answer Key matching
+ * (e.g. "เฉลยแนวข้อสอบ ชุดที่ ๒" -> "ชุดที่ 2", "บทที่ 03 กฎหมาย" -> "บทที่ 3 กฎหมาย").
+ */
+export function normalizeSectionLabel(value) {
+  const arabic = thaiDigitsToArabic(String(value ?? '')).trim().toLowerCase()
+  if (!arabic) return ''
+  return arabic
+    .replace(/^(?:(?:ตารางเฉลย|คำเฉลย|เฉลย|แนวข้อสอบ|แบบทดสอบ|ข้อสอบ)\s*)+/i, '')
+    .replace(/\b0+(\d+)/g, '$1')
+    .replace(/[\s\-–—_:()[\].]+/g, ' ')
+    .trim()
+}
+
+function extractSectionNumberTag(normalizedSection) {
+  if (!normalizedSection) return ''
+  const match = normalizedSection.match(/(?:ชุดที่|บทที่|ตอนที่|ส่วนที่|หน่วยที่|เรื่องที่|part|set|chapter|unit|section)\s*(\d+)/i)
+  if (match) return match[1]
+  return ''
+}
+
+function sectionsMatch(sectionA, sectionB) {
+  const normA = normalizeSectionLabel(sectionA)
+  const normB = normalizeSectionLabel(sectionB)
+  if (!normA || !normB) return false
+  if (normA === normB) return true
+  if (normA.includes(normB) || normB.includes(normA)) return true
+
+  const numA = extractSectionNumberTag(normA)
+  const numB = extractSectionNumberTag(normB)
+  return Boolean(numA && numB && numA === numB)
+}
+
+/**
+ * Validate and format a single raw extracted question from Pass 1 (Extract-Only).
+ * STRICT PASS 1 RULE:
+ * - Never forces AI to guess an answer.
+ * - If inline book answer exists -> sets `book_answer` (0-based index) and `has_source_answer = true`.
+ * - If no inline answer exists -> `book_answer = null`, `correct_option = null`, `has_source_answer = false`.
+ * - Always enters Staging as `answer_status = 'pending_answer'` so Pass 2 & Pass 3 handle matching/auditing uniformly.
+ */
+export function validateAndFormatPass1Question(rawItem) {
+  if (!rawItem || typeof rawItem !== 'object') {
+    return { valid: false, reason: 'invalid_structure' }
+  }
+
+  if (rawItem.has_image === true || rawItem.requires_image === true) {
+    return { valid: false, reason: 'has_image' }
+  }
+
+  const rawOptions = Array.isArray(rawItem.options) ? rawItem.options : []
+  if (rawOptions.length < 4 || rawOptions.length > 5) {
+    return { valid: false, reason: 'invalid_option_count' }
+  }
+
+  const formattedOptions = rawOptions.map((opt) =>
+    convertMathAndTableToPlainText(stripChoicePrefix(String(opt ?? '')))
+  )
+
+  if (formattedOptions.some((opt) => !opt.trim())) {
+    return { valid: false, reason: 'empty_option' }
+  }
+
+  const rawStem = String(rawItem.question_text ?? rawItem.question ?? '')
+  const { cleanedText: stemWithoutNum, detectedNumber } = stripQuestionNumberPrefix(rawStem)
+  const questionText = convertMathAndTableToPlainText(stemWithoutNum)
+
+  if (!questionText.trim()) {
+    return { valid: false, reason: 'empty_question' }
+  }
+
+  const sourceQuestionNumber = normalizeSourceQuestionNumber(
+    rawItem.source_question_number ?? rawItem.question_number ?? detectedNumber
+  )
+  const sourceSection = String(rawItem.source_section ?? rawItem.section ?? '').trim()
+  const sourcePage = Number.isInteger(Number(rawItem.source_page)) && Number(rawItem.source_page) > 0
+    ? Number(rawItem.source_page)
+    : null
+
+  // Resolve inline book answer ONLY if explicitly present in the document
+  let bookAnswer = null
+  const hasExplicitInline =
+    rawItem.has_inline_answer === true ||
+    rawItem.answer_source === 'document' ||
+    (rawItem.book_answer !== undefined && rawItem.book_answer !== null && rawItem.book_answer !== '')
+
+  if (hasExplicitInline) {
+    const rawBookAns = rawItem.book_answer ?? rawItem.inline_answer_index ?? rawItem.correct_option
+    if (typeof rawBookAns === 'number' && Number.isInteger(rawBookAns) && rawBookAns >= 0 && rawBookAns < formattedOptions.length) {
+      bookAnswer = rawBookAns
+    } else if (typeof rawBookAns === 'string' && /^\d+$/.test(rawBookAns.trim()) && Number(rawBookAns.trim()) >= 0 && Number(rawBookAns.trim()) < formattedOptions.length && rawItem.book_answer_label === undefined) {
+      bookAnswer = Number(rawBookAns.trim())
+    } else {
+      bookAnswer = parseAnswerLabelToIndex(
+        rawItem.book_answer_label ?? rawItem.answer_label ?? rawBookAns,
+        formattedOptions.length,
+        formattedOptions
+      )
+    }
+  }
+
+  const bookExplanation = convertMathAndTableToPlainText(
+    String(rawItem.book_explanation ?? rawItem.explanation_from_book ?? '').trim()
+  )
+
+  return {
+    valid: true,
+    question: {
+      question_text: questionText,
+      options: formattedOptions,
+      correct_option: bookAnswer, // null when pending match in Pass 2/3
+      book_answer: bookAnswer,
+      book_explanation: bookExplanation || null,
+      explanation: bookExplanation || null,
+      override_reason: null,
+      answer_status: 'pending_answer',
+      is_options_randomized: true,
+      source_question_number: sourceQuestionNumber || null,
+      source_section: sourceSection || null,
+      source_page: sourcePage,
+      has_source_answer: bookAnswer !== null,
+      is_ai_solved: false
+    }
+  }
+}
+
+/**
+ * Segment an ordered list of numbered items (questions or answer keys) into contiguous
+ * blocks whenever numbering resets (e.g., 1..50 then 1..50 in a multi-set 300+ page book)
+ * or when `section` changes explicitly.
+ */
+function segmentIntoNumberedBlocks(entries, getNum, getSection, getPage) {
+  const blocks = []
+  let current = null
+
+  for (const entry of entries) {
+    const numStr = normalizeSourceQuestionNumber(getNum(entry))
+    const numVal = parseInt(numStr, 10)
+    const sec = normalizeSectionLabel(getSection(entry))
+    const page = Number(getPage(entry)) || 0
+
+    const shouldStartNewBlock =
+      !current ||
+      (sec && current.section && !sectionsMatch(sec, current.section)) ||
+      (Number.isFinite(numVal) && current.lastNum !== null && numVal < current.lastNum && numVal <= 5)
+
+    if (shouldStartNewBlock) {
+      current = {
+        index: blocks.length,
+        section: sec,
+        startPage: page,
+        endPage: page,
+        lastNum: Number.isFinite(numVal) ? numVal : null,
+        items: []
+      }
+      blocks.push(current)
+    } else {
+      if (!current.section && sec) current.section = sec
+      current.endPage = Math.max(current.endPage, page)
+      if (Number.isFinite(numVal)) current.lastNum = numVal
+    }
+
+    current.items.push(entry)
+  }
+
+  return blocks
+}
+
+/**
+ * Pass 2 Full-File Answer Key Matching Algorithm:
+ * Matches pending staging questions (`book_answer == null`) against the full-file `answerKeyPool`
+ * collected across all chunks in Pass 1.
+ *
+ * Handles:
+ *  - Section/chapter-labeled books ("ชุดที่ 1", "บทที่ 2", etc.)
+ *  - Multi-set 300+ page books that reset question numbering back to #1 multiple times
+ *  - Both end-of-chapter answer keys AND end-of-book answer key tables
+ *  - Validates choice index bounds (4 vs 5 options) cleanly
+ */
+export function matchAnswerKeysToPendingQuestions(pendingQuestions, answerKeyPool) {
+  if (!Array.isArray(pendingQuestions) || pendingQuestions.length === 0) {
+    return { matched: [], unmatched: [] }
+  }
+  if (!Array.isArray(answerKeyPool) || answerKeyPool.length === 0) {
+    return { matched: [], unmatched: [...pendingQuestions] }
+  }
+
+  // Normalize & sort questions by (source_page, created_at/original order)
+  const orderedQuestions = pendingQuestions.map((q, idx) => ({ ...q, _origIdx: idx }))
+  orderedQuestions.sort((a, b) => (Number(a.source_page) || 0) - (Number(b.source_page) || 0) || a._origIdx - b._origIdx)
+
+  // Normalize & sort answer keys by (page_number, original order)
+  const normalizedKeys = answerKeyPool
+    .map((key, idx) => ({
+      _keyIdx: idx,
+      section: String(key?.section ?? key?.source_section ?? '').trim(),
+      question_number: normalizeSourceQuestionNumber(key?.question_number ?? key?.source_question_number),
+      answer_label: String(key?.answer_label ?? key?.answer_choice ?? key?.answer ?? '').trim(),
+      answer_index: Number.isInteger(Number(key?.answer_index)) && key?.answer_index !== '' && key?.answer_index !== null
+        ? Number(key.answer_index)
+        : null,
+      book_explanation: convertMathAndTableToPlainText(
+        String(key?.book_explanation ?? key?.explanation_from_key ?? key?.explanation ?? '').trim()
+      ),
+      page_number: Number(key?.page_number ?? key?.source_page) || 0
+    }))
+    .filter((k) => Boolean(k.question_number))
+    .sort((a, b) => a.page_number - b.page_number || a._keyIdx - b._keyIdx)
+
+  const questionBlocks = segmentIntoNumberedBlocks(
+    orderedQuestions,
+    (q) => q.source_question_number,
+    (q) => q.source_section,
+    (q) => q.source_page
+  )
+  const keyBlocks = segmentIntoNumberedBlocks(
+    normalizedKeys,
+    (k) => k.question_number,
+    (k) => k.section,
+    (k) => k.page_number
+  )
+
+  // Map each questionBlock -> preferred keyBlock
+  const usedKeyBlocks = new Set()
+  const qBlockToKeyBlock = new Map()
+
+  // Pass A: Exact section match between Question Block and Key Block
+  for (const qb of questionBlocks) {
+    if (!qb.section) continue
+    const matchKb = keyBlocks.find(
+      (kb) => !usedKeyBlocks.has(kb.index) && kb.section && sectionsMatch(qb.section, kb.section)
+    )
+    if (matchKb) {
+      qBlockToKeyBlock.set(qb.index, matchKb)
+      usedKeyBlocks.add(matchKb.index)
+    }
+  }
+
+  // Pass B: End-of-chapter proximity (a Key Block that sits right after qb.endPage and before nextQb.startPage)
+  for (let i = 0; i < questionBlocks.length; i += 1) {
+    const qb = questionBlocks[i]
+    if (qBlockToKeyBlock.has(qb.index)) continue
+    const nextQb = questionBlocks[i + 1]
+    const upperBoundPage = nextQb ? nextQb.startPage : Number.MAX_SAFE_INTEGER
+
+    const chapterKb = keyBlocks.find(
+      (kb) =>
+        !usedKeyBlocks.has(kb.index) &&
+        kb.startPage >= qb.endPage &&
+        kb.startPage <= upperBoundPage
+    )
+    if (chapterKb) {
+      qBlockToKeyBlock.set(qb.index, chapterKb)
+      usedKeyBlocks.add(chapterKb.index)
+    }
+  }
+
+  // Pass C: Sequential end-of-book mapping (remaining Question Blocks <-> remaining Key Blocks in order)
+  const remainingQBlocks = questionBlocks.filter((qb) => !qBlockToKeyBlock.has(qb.index))
+  const remainingKBlocks = keyBlocks.filter((kb) => !usedKeyBlocks.has(kb.index))
+  for (let i = 0; i < Math.min(remainingQBlocks.length, remainingKBlocks.length); i += 1) {
+    qBlockToKeyBlock.set(remainingQBlocks[i].index, remainingKBlocks[i])
+    usedKeyBlocks.add(remainingKBlocks[i].index)
+  }
+
+  const resolveKeyIndexForQuestion = (key, question) => {
+    const optionCount = Array.isArray(question.options) ? question.options.length : 0
+    if (optionCount < 4 || optionCount > 5) return null
+
+    if (key.answer_index !== null && Number.isInteger(key.answer_index) && key.answer_index >= 0 && key.answer_index < optionCount) {
+      return key.answer_index
+    }
+    return parseAnswerLabelToIndex(key.answer_label, optionCount, question.options)
+  }
+
+  const usedKeyIds = new Set()
+  const matched = []
+  const unmatched = []
+
+  for (const qb of questionBlocks) {
+    const preferredKb = qBlockToKeyBlock.get(qb.index)
+
+    for (const q of qb.items) {
+      const qNum = normalizeSourceQuestionNumber(q.source_question_number)
+      if (!qNum) {
+        unmatched.push(q)
+        continue
+      }
+
+      let matchedKey = null
+
+      // 1) Look inside the question block's mapped Key Block first
+      if (preferredKb) {
+        matchedKey = preferredKb.items.find(
+          (k) => !usedKeyIds.has(k._keyIdx) && k.question_number === qNum
+        ) || null
+      }
+
+      // 2) Fallback: exact section match anywhere in the key pool
+      if (!matchedKey && q.source_section) {
+        matchedKey = normalizedKeys.find(
+          (k) => !usedKeyIds.has(k._keyIdx) && k.question_number === qNum && sectionsMatch(q.source_section, k.section)
+        ) || null
+      }
+
+      // 3) Fallback: unambiguous global match ONLY if there is exactly 1 unused key with that question number
+      //    (prevents cross-set collisions in multi-set books where Q#1 appears in Set 1 & Set 2)
+      if (!matchedKey && questionBlocks.length === 1) {
+        const globalCandidates = normalizedKeys.filter(
+          (k) => !usedKeyIds.has(k._keyIdx) && k.question_number === qNum
+        )
+        if (globalCandidates.length >= 1) {
+          // Prefer key occurring on or after the question page
+          matchedKey = globalCandidates.find((k) => k.page_number >= (Number(q.source_page) || 0)) || globalCandidates[0]
+        }
+      } else if (!matchedKey) {
+        const globalCandidates = normalizedKeys.filter(
+          (k) => !usedKeyIds.has(k._keyIdx) && k.question_number === qNum
+        )
+        if (globalCandidates.length === 1) {
+          matchedKey = globalCandidates[0]
+        }
+      }
+
+      if (!matchedKey) {
+        unmatched.push(q)
+        continue
+      }
+
+      const resolvedIndex = resolveKeyIndexForQuestion(matchedKey, q)
+      if (resolvedIndex === null) {
+        unmatched.push(q)
+        continue
+      }
+
+      usedKeyIds.add(matchedKey._keyIdx)
+      matched.push({
+        question: q,
+        book_answer: resolvedIndex,
+        book_explanation: matchedKey.book_explanation || q.book_explanation || null,
+        matched_key_page: matchedKey.page_number,
+        matched_key_section: matchedKey.section || null
+      })
+    }
+  }
+
+  return { matched, unmatched }
+}
+
+/**
  * Validate and format a single raw extracted question from Gemini.
  * Enforces:
  * - Strictly 4 or 5 options
@@ -481,6 +830,7 @@ export function parsePartialExtractionJson(rawText) {
       skipped_items: [],
       skipped_pages: [],
       incomplete_tail_text: '',
+      last_detected_section: '',
       partialRecovered: false,
       parseFailed: true
     }
@@ -495,6 +845,7 @@ export function parsePartialExtractionJson(rawText) {
         skipped_items: [],
         skipped_pages: [],
         incomplete_tail_text: '',
+        last_detected_section: '',
         partialRecovered: false,
         parseFailed: false
       }
@@ -505,6 +856,7 @@ export function parsePartialExtractionJson(rawText) {
       skipped_items: Array.isArray(parsed?.skipped_items) ? parsed.skipped_items : [],
       skipped_pages: Array.isArray(parsed?.skipped_pages) ? parsed.skipped_pages : [],
       incomplete_tail_text: typeof parsed?.incomplete_tail_text === 'string' ? parsed.incomplete_tail_text.trim() : '',
+      last_detected_section: typeof parsed?.last_detected_section === 'string' ? parsed.last_detected_section.trim() : '',
       partialRecovered: false,
       parseFailed: false
     }
@@ -522,8 +874,37 @@ export function parsePartialExtractionJson(rawText) {
       skipped_items: skippedItems,
       skipped_pages: skippedPages,
       incomplete_tail_text: '',
+      last_detected_section: '',
       partialRecovered: recoveredAny,
       parseFailed: !recoveredAny
     }
+  }
+}
+
+/**
+ * Parse a Pass 3 batch response (`{"results": [...]}` or `[...]`) with partial recovery
+ * in case a batch response is truncated.
+ */
+export function parsePass3BatchJson(rawText) {
+  const cleaned = String(rawText ?? '')
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim()
+
+  if (!cleaned) return []
+
+  try {
+    const parsed = JSON.parse(cleaned)
+    if (Array.isArray(parsed)) return parsed
+    if (Array.isArray(parsed?.results)) return parsed.results
+    return []
+  } catch {
+    const recoveredResults = extractCompleteObjectsFromArrayField(cleaned, 'results')
+    if (recoveredResults.length > 0) return recoveredResults
+    // Fallback: try wrapping as {"results": ...} if raw response started with '['
+    if (cleaned.startsWith('[')) {
+      return extractCompleteObjectsFromArrayField(`{"results":${cleaned}`, 'results')
+    }
+    return []
   }
 }

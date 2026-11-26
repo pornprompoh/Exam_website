@@ -1,10 +1,20 @@
 import { useState } from 'react'
+import { getGeminiModelLabel } from '../../../lib/geminiModels'
 
 function createDraft(question) {
   return {
     ...question,
     options: [...question.options]
   }
+}
+
+function resolveStatus(item) {
+  if (['pending_answer', 'book_verified', 'ai_overridden', 'ai_solved'].includes(item?.answer_status)) {
+    return item.answer_status
+  }
+  if (item?.correct_option === null || item?.correct_option === undefined) return 'pending_answer'
+  if (item?.is_ai_solved) return 'ai_solved'
+  return 'book_verified'
 }
 
 export default function ExamPreviewTable({
@@ -15,7 +25,8 @@ export default function ExamPreviewTable({
   selectedIds = [],
   onToggleSelect = null,
   showExtractionMeta = false,
-  useExternalRemoveConfirm = false
+  useExternalRemoveConfirm = false,
+  onInspectOverride = null
 }) {
   const [editingIndex, setEditingIndex] = useState(null)
   const [draft, setDraft] = useState(null)
@@ -35,10 +46,23 @@ export default function ExamPreviewTable({
       return
     }
 
+    const hasChosenOption =
+      draft.correct_option !== null &&
+      draft.correct_option !== undefined &&
+      draft.correct_option !== '' &&
+      Number.isInteger(Number(draft.correct_option))
+
+    const currentStatus = resolveStatus(draft)
+    const nextStatus = currentStatus === 'pending_answer' && hasChosenOption
+      ? 'book_verified'
+      : draft.answer_status
+
     onSaveQuestion(editingIndex, {
       ...draft,
       question_text: draft.question_text.trim(),
       options: draft.options.map((option) => option.trim()),
+      correct_option: hasChosenOption ? Number(draft.correct_option) : null,
+      answer_status: nextStatus,
       explanation: (draft.explanation || '').trim()
     })
     cancelEditing()
@@ -68,6 +92,42 @@ export default function ExamPreviewTable({
     }
   }
 
+  const renderAnswerStatusBadge = (item) => {
+    const status = resolveStatus(item)
+    switch (status) {
+      case 'book_verified':
+        return (
+          <span className="rounded-full border border-emerald-500/35 bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-black text-emerald-300">
+            ✅ เฉลยหนังสือ (ตรวจแล้ว)
+          </span>
+        )
+      case 'ai_overridden':
+        return (
+          <button
+            type="button"
+            onClick={() => onInspectOverride?.(item)}
+            className="rounded-full border border-orange-500/50 bg-gradient-to-r from-orange-500/20 to-red-500/20 hover:from-orange-500/35 hover:to-red-500/35 px-3 py-0.5 text-[11px] font-black text-orange-300 transition-all cursor-pointer shadow-xs flex items-center gap-1"
+            title="คลิกเพื่อเปรียบเทียบเฉลยหนังสือ vs AI และดูเหตุผล"
+          >
+            <span>⚠️ AI แก้เฉลย (คลิกดูเหตุผล)</span>
+          </button>
+        )
+      case 'ai_solved':
+        return (
+          <span className="rounded-full border border-sky-500/40 bg-indigo-500/15 px-2.5 py-0.5 text-[11px] font-black text-sky-300">
+            🤖 AI เฉลย (ไม่มีเฉลยในไฟล์)
+          </span>
+        )
+      case 'pending_answer':
+      default:
+        return (
+          <span className="rounded-full border border-slate-600 bg-slate-800 px-2.5 py-0.5 text-[11px] font-bold text-slate-300">
+            ⏳ รอจับคู่เฉลย
+          </span>
+        )
+    }
+  }
+
   return (
     <div className="space-y-4">
       {questions.map((item, index) => {
@@ -75,6 +135,17 @@ export default function ExamPreviewTable({
         const displayedQuestion = isEditing ? draft : item
         const itemKey = item.id || `${index}-${item.source_topic || item.source_question_number || ''}`
         const isSelected = selectable && item.id && selectedIds.includes(item.id)
+        const status = resolveStatus(item)
+        const hasCorrectOption =
+          item.correct_option !== null &&
+          item.correct_option !== undefined &&
+          Number.isInteger(Number(item.correct_option))
+        const bookIdx =
+          item.book_answer !== null &&
+          item.book_answer !== undefined &&
+          Number.isInteger(Number(item.book_answer))
+            ? Number(item.book_answer)
+            : null
 
         return (
           <article
@@ -82,9 +153,11 @@ export default function ExamPreviewTable({
             className={`space-y-4 rounded-2xl border bg-slate-950 p-4 transition-colors ${
               isEditing
                 ? 'border-indigo-500 ring-2 ring-indigo-500/20'
-                : isSelected
-                  ? 'border-sky-500/60 bg-sky-950/10'
-                  : 'border-slate-800'
+                : status === 'ai_overridden' && showExtractionMeta
+                  ? 'border-orange-500/40 bg-orange-950/10'
+                  : isSelected
+                    ? 'border-sky-500/60 bg-sky-950/10'
+                    : 'border-slate-800'
             }`}
           >
             <header className="flex flex-wrap items-center justify-between gap-2.5">
@@ -104,22 +177,17 @@ export default function ExamPreviewTable({
                     ต้นฉบับ #{item.source_question_number}
                   </span>
                 )}
+                {showExtractionMeta && item.source_section && (
+                  <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-indigo-200 max-w-[200px] truncate" title={item.source_section}>
+                    {item.source_section}
+                  </span>
+                )}
                 {showExtractionMeta && item.source_page && (
                   <span className="rounded-md border border-slate-700 bg-slate-900 px-2 py-0.5 text-[11px] font-bold text-slate-400">
                     หน้า {item.source_page}
                   </span>
                 )}
-                {showExtractionMeta && (
-                  item.is_ai_solved ? (
-                    <span className="rounded-full border border-amber-500/40 bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-black text-amber-300">
-                      🤖 AI เฉลย
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300">
-                      📄 เฉลยจากเอกสาร
-                    </span>
-                  )
-                )}
+                {showExtractionMeta && renderAnswerStatusBadge(item)}
               </div>
 
               {isEditing ? (
@@ -168,7 +236,11 @@ export default function ExamPreviewTable({
                       <input
                         type="radio"
                         name={`correct-${itemKey}`}
-                        checked={Number(displayedQuestion.correct_option) === optionIndex}
+                        checked={
+                          displayedQuestion.correct_option !== null &&
+                          displayedQuestion.correct_option !== undefined &&
+                          Number(displayedQuestion.correct_option) === optionIndex
+                        }
                         onChange={() => updateDraft('correct_option', optionIndex)}
                         aria-label={`กำหนดตัวเลือก ${optionIndex + 1} เป็นคำตอบที่ถูกต้อง`}
                         className="accent-emerald-500"
@@ -218,31 +290,71 @@ export default function ExamPreviewTable({
                 </p>
                 <ul className="grid gap-2 sm:grid-cols-2">
                   {item.options.map((option, optionIndex) => {
-                    const isCorrect = Number(item.correct_option) === optionIndex
+                    const isCorrect = hasCorrectOption && Number(item.correct_option) === optionIndex
+                    const isOverriddenBookOption =
+                      showExtractionMeta &&
+                      status === 'ai_overridden' &&
+                      bookIdx !== null &&
+                      bookIdx === optionIndex &&
+                      !isCorrect
+
                     return (
                       <li
                         key={optionIndex}
                         className={`flex items-start gap-2 rounded-xl border p-3 text-sm leading-relaxed ${
                           isCorrect
                             ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-                            : 'border-slate-800 bg-slate-900/70 text-slate-300'
+                            : isOverriddenBookOption
+                              ? 'border-rose-500/30 bg-rose-500/5 text-rose-200/90'
+                              : 'border-slate-800 bg-slate-900/70 text-slate-300'
                         }`}
                       >
-                        <span className={`mt-0.5 shrink-0 text-xs font-black ${isCorrect ? 'text-emerald-400' : 'text-slate-500'}`}>
+                        <span className={`mt-0.5 shrink-0 text-xs font-black ${
+                          isCorrect
+                            ? 'text-emerald-400'
+                            : isOverriddenBookOption
+                              ? 'text-rose-400'
+                              : 'text-slate-500'
+                        }`}>
                           {isCorrect ? '✓' : String.fromCharCode(65 + optionIndex)}
                         </span>
                         <span className="whitespace-pre-wrap break-words">{option}</span>
-                        {isCorrect && <span className="ml-auto shrink-0 text-[10px] font-bold text-emerald-400">คำตอบ</span>}
+                        {isCorrect && (
+                          <span className="ml-auto shrink-0 text-[10px] font-bold text-emerald-400">
+                            {status === 'ai_overridden' ? 'เฉลย AI' : 'คำตอบ'}
+                          </span>
+                        )}
+                        {isOverriddenBookOption && (
+                          <span className="ml-auto shrink-0 text-[10px] font-bold text-rose-400">
+                            เฉลยหนังสือเดิม
+                          </span>
+                        )}
                       </li>
                     )
                   })}
                 </ul>
+
+                {showExtractionMeta && status === 'ai_overridden' && (
+                  <button
+                    type="button"
+                    onClick={() => onInspectOverride?.(item)}
+                    className="w-full text-left rounded-xl border border-orange-500/30 bg-orange-500/10 hover:bg-orange-500/15 p-3 text-xs leading-relaxed text-orange-200 transition-colors cursor-pointer flex items-center justify-between gap-3"
+                  >
+                    <span className="line-clamp-2">
+                      <strong className="text-orange-300">⚖️ เหตุผลที่ AI แก้เฉลย: </strong>
+                      {item.override_reason || 'คลิกเพื่อดูการเปรียบเทียบเฉลยหนังสือ vs AI'}
+                    </span>
+                    <span className="shrink-0 font-black text-orange-300">ตรวจ/ตัดสินใจ →</span>
+                  </button>
+                )}
+
                 <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-900/70 p-3">
                   <p className="text-xs font-bold text-slate-400">คำอธิบายเฉลย</p>
                   <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-300 break-words">
-                    {item.explanation || 'ไม่มีคำอธิบาย'}
+                    {item.explanation || (status === 'pending_answer' ? 'รอ Pass 2–3 จับคู่และสร้างคำอธิบายเฉลย' : 'ไม่มีคำอธิบาย')}
                   </p>
                 </div>
+
                 {showExtractionMeta ? (
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-slate-800 bg-slate-900/50 px-3 py-2 text-[11px] text-slate-400">
                     <span><strong className="text-slate-300">ไฟล์:</strong> {item.source_file_name || 'ไม่ระบุ'}</span>
@@ -251,6 +363,9 @@ export default function ExamPreviewTable({
                     )}
                     {item.source_page && (
                       <span><strong className="text-slate-300">หน้า:</strong> {item.source_page}</span>
+                    )}
+                    {item.verified_by_model && (
+                      <span className="text-indigo-300"><strong className="text-slate-300">ตรวจโดย:</strong> {getGeminiModelLabel(item.verified_by_model)}</span>
                     )}
                   </div>
                 ) : (

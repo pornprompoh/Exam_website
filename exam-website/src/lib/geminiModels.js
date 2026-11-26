@@ -53,3 +53,41 @@ export function saveGeminiModel(model) {
     throw new Error('ไม่สามารถบันทึกการตั้งค่าโมเดล Gemini ได้ กรุณาตรวจสอบการตั้งค่าเบราว์เซอร์')
   }
 }
+
+// ============================================================================
+// Two-Stage Hybrid Model Routing Helpers (Additive — Backward-Compatible)
+// - Flash Lite tier: 15 RPM / 250K TPM / 500 RPD (Pass 1 Extraction & Stage 3A Screening)
+// - Flash Standard tier: 5 RPM / 250K TPM / 20 RPD (Stage 3B Deep Escalation & Solve)
+// ============================================================================
+
+export function isFlashLiteModel(modelValue) {
+  return String(modelValue || '').toLowerCase().includes('lite')
+}
+
+export const GEMINI_LITE_MODELS = GEMINI_MODELS.filter((m) => isFlashLiteModel(m.value))
+export const GEMINI_STANDARD_MODELS = GEMINI_MODELS.filter((m) => !isFlashLiteModel(m.value))
+
+export const DEFAULT_LITE_MODEL = GEMINI_LITE_MODELS[0]?.value || DEFAULT_GEMINI_MODEL
+export const DEFAULT_STANDARD_MODEL = GEMINI_STANDARD_MODELS[0]?.value || DEFAULT_GEMINI_MODEL
+
+export function getGeminiModelLabel(modelValue) {
+  return GEMINI_MODELS.find((m) => m.value === modelValue)?.label || modelValue || ''
+}
+
+export function resolveHybridModelPair(preferredDeepModel = '') {
+  let stored
+  try {
+    stored = getGeminiModel() || DEFAULT_GEMINI_MODEL
+  } catch {
+    stored = DEFAULT_GEMINI_MODEL
+  }
+
+  const liteModel = isFlashLiteModel(stored) ? stored : DEFAULT_LITE_MODEL
+  const deepModel = preferredDeepModel && supportedModels.has(preferredDeepModel)
+    ? preferredDeepModel
+    : !isFlashLiteModel(stored)
+      ? stored
+      : DEFAULT_STANDARD_MODEL
+
+  return { liteModel, deepModel }
+}
