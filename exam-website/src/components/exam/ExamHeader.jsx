@@ -32,7 +32,7 @@ export default function ExamHeader({
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {examPhase === 'submitted' ? (
               <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 sm:px-5 py-2 rounded-xl font-black text-xs sm:text-sm shadow-md flex items-center gap-1.5 shrink-0 animate-fadeIn">
-                <span>🏆</span><span className="hidden sm:inline">ผลการสอบ:</span><span className="text-sm sm:text-base underline decoration-2">{score}</span><span>/{questionsLength}</span>
+                <span>🏆</span><span className="hidden sm:inline">ผลการสอบ:</span><span className="text-sm sm:text-base underline decoration-2">{score.toLocaleString()}</span><span>/{answeredCount.toLocaleString()}</span>
               </div>
             ) : (
               <div className="flex items-center gap-1.5 bg-slate-100/80 p-1 sm:p-1.5 rounded-2xl border border-slate-200/80 shadow-2xs shrink-0">

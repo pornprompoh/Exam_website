@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { fetchAllPaginated, getTableExactCount } from './supabasePagination'
 import { getGeminiApiKey } from './geminiApiKey'
 import {
   getGeminiModelLabel,
@@ -9,7 +10,6 @@ import {
   parseAnswerLabelToIndex
 } from './examTextUtils'
 
-const PAGE_FETCH_SIZE = 1000
 const MAX_RETRY_ATTEMPTS = 4
 const INITIAL_RETRY_BACKOFF_MS = 4500
 // Flash Lite: 15 RPM / 500 RPD -> >= 4.2s spacing
@@ -362,18 +362,20 @@ export function runStage0LocalPreCheck(question) {
 
 export async function fetchCategoryAuditStats(categoryId = 'ALL') {
   const countByStatus = async (status = null) => {
-    let query = supabase
-      .from('questions')
-      .select('id', { count: 'exact', head: true })
-    if (categoryId && categoryId !== 'ALL') {
-      query = query.eq('category_id', categoryId)
+    try {
+      return await getTableExactCount('questions', (q) => {
+        let query = q
+        if (categoryId && categoryId !== 'ALL') {
+          query = query.eq('category_id', categoryId)
+        }
+        if (status) {
+          query = query.eq('audit_status', status)
+        }
+        return query
+      })
+    } catch (error) {
+      throw formatAuditorDbError(error, 'ไม่สามารถโหลดสถิติการตรวจทานเฉลยได้')
     }
-    if (status) {
-      query = query.eq('audit_status', status)
-    }
-    const { count, error } = await query
-    if (error) throw formatAuditorDbError(error, 'ไม่สามารถโหลดสถิติการตรวจทานเฉลยได้')
-    return count || 0
   }
 
   const [total, unchecked, verified, flagged] = await Promise.all([
@@ -391,94 +393,65 @@ export async function fetchCategoryAuditStats(categoryId = 'ALL') {
  */
 export async function fetchFlaggedBadgeCounts(categoryId) {
   try {
-    const [categoryRes, totalRes] = await Promise.all([
+    const [categoryFlagged, totalFlagged] = await Promise.all([
       categoryId
-        ? supabase
-            .from('questions')
-            .select('id', { count: 'exact', head: true })
-            .eq('category_id', categoryId)
-            .eq('audit_status', 'flagged')
-        : Promise.resolve({ count: 0, error: null }),
-      supabase
-        .from('questions')
-        .select('id', { count: 'exact', head: true })
-        .eq('audit_status', 'flagged')
+        ? getTableExactCount('questions', (q) => q.eq('category_id', categoryId).eq('audit_status', 'flagged'))
+        : Promise.resolve(0),
+      getTableExactCount('questions', (q) => q.eq('audit_status', 'flagged'))
     ])
-
-    if (categoryRes.error || totalRes.error) {
-      return { categoryFlagged: 0, totalFlagged: 0 }
-    }
-    return {
-      categoryFlagged: categoryRes.count || 0,
-      totalFlagged: totalRes.count || 0
-    }
+    return { categoryFlagged, totalFlagged }
   } catch {
     return { categoryFlagged: 0, totalFlagged: 0 }
   }
 }
 
 export async function fetchFlaggedQuestions(categoryId = 'ALL') {
-  const items = []
-  let from = 0
+  try {
+    return await fetchAllPaginated(
+      (client) => {
+        let query = client
+          .from('questions')
+          .select('id, category_id, question_text, options, correct_option, explanation, image_url, audit_status, audit_suggested_answer, audit_suggested_explanation, audit_reason, audit_model, audit_checked_at')
+          .eq('audit_status', 'flagged')
 
-  while (true) {
-    const to = from + PAGE_FETCH_SIZE - 1
-    let query = supabase
-      .from('questions')
-      .select('id, category_id, question_text, options, correct_option, explanation, image_url, audit_status, audit_suggested_answer, audit_suggested_explanation, audit_reason, audit_model, audit_checked_at')
-      .eq('audit_status', 'flagged')
+        if (categoryId && categoryId !== 'ALL') {
+          query = query.eq('category_id', categoryId)
+        }
 
-    if (categoryId && categoryId !== 'ALL') {
-      query = query.eq('category_id', categoryId)
-    }
-
-    const { data, error } = await query
-      .order('audit_checked_at', { ascending: false, nullsFirst: false })
-      .range(from, to)
-
-    if (error) throw formatAuditorDbError(error, 'ไม่สามารถดึงรายการข้อสอบที่ติดสถานะ flagged ได้')
-    if (!data || data.length === 0) break
-
-    items.push(...data)
-    if (data.length < PAGE_FETCH_SIZE) break
-    from += PAGE_FETCH_SIZE
+        return query.order('audit_checked_at', { ascending: false, nullsFirst: false })
+      },
+      { pageSize: 1000, orderColumn: 'id', ascending: true }
+    )
+  } catch (error) {
+    throw formatAuditorDbError(error, 'ไม่สามารถดึงรายการข้อสอบที่ติดสถานะ flagged ได้')
   }
-
-  return items
 }
 
 async function fetchUncheckedQuestions(categoryId = 'ALL', maxLimit = null) {
-  const items = []
-  let from = 0
+  try {
+    return await fetchAllPaginated(
+      (client) => {
+        let query = client
+          .from('questions')
+          .select('id, category_id, question_text, options, correct_option, explanation, image_url')
+          .eq('audit_status', 'unchecked')
 
-  while (true) {
-    const remaining = maxLimit ? maxLimit - items.length : PAGE_FETCH_SIZE
-    if (remaining <= 0) break
-    const step = Math.min(PAGE_FETCH_SIZE, remaining)
-    const to = from + step - 1
+        if (categoryId && categoryId !== 'ALL') {
+          query = query.eq('category_id', categoryId)
+        }
 
-    let query = supabase
-      .from('questions')
-      .select('id, category_id, question_text, options, correct_option, explanation, image_url')
-      .eq('audit_status', 'unchecked')
-
-    if (categoryId && categoryId !== 'ALL') {
-      query = query.eq('category_id', categoryId)
-    }
-
-    const { data, error } = await query
-      .order('created_at', { ascending: true })
-      .range(from, to)
-
-    if (error) throw formatAuditorDbError(error, 'ไม่สามารถดึงข้อสอบที่ยังไม่ตรวจได้')
-    if (!data || data.length === 0) break
-
-    items.push(...data)
-    if (data.length < step) break
-    from += step
+        return query.order('created_at', { ascending: true })
+      },
+      {
+        pageSize: 1000,
+        maxRows: maxLimit || Number.POSITIVE_INFINITY,
+        orderColumn: 'id',
+        ascending: true
+      }
+    )
+  } catch (error) {
+    throw formatAuditorDbError(error, 'ไม่สามารถดึงข้อสอบที่ยังไม่ตรวจได้')
   }
-
-  return items
 }
 
 async function markQuestionsVerifiedInDb(ids, modelName) {

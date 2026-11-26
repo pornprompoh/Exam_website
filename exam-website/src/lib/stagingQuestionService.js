@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { fetchAllPaginated, getTableExactCount, runInBatches } from './supabasePagination'
 import {
   matchAnswerKeysToPendingQuestions,
   normalizeForStrictExactMatch,
@@ -7,7 +8,6 @@ import {
 
 const STAGING_TABLE = 'question_staging_items'
 const CHECKPOINT_TABLE = 'question_extraction_checkpoints'
-const PAGE_FETCH_SIZE = 1000
 const LOCAL_CHECKPOINT_PREFIX = 'ai_exam_extractor_checkpoint:'
 
 function getLocalCheckpointKey(categoryId, fingerprint) {
@@ -108,35 +108,23 @@ export function resolveItemAnswerStatus(item) {
 }
 
 /**
- * Fetch ALL question_text strings in a category across a single table using pagination
- * (avoids Supabase's default 1,000 row limit so large question banks are 100% deduplicated).
+ * Fetch ALL question_text strings in a category across a single table using
+ * `fetchAllPaginated` with deterministic `.order('id', { ascending: true })`
+ * so 3,000–10,000+ question banks are 100% deduplicated with zero missed/duplicated rows.
  */
 async function fetchAllQuestionTextsFromTable(tableName, categoryId) {
-  const texts = []
-  let from = 0
+  const rows = await fetchAllPaginated(
+    (client) =>
+      client
+        .from(tableName)
+        .select('id, question_text')
+        .eq('category_id', categoryId),
+    { pageSize: 1000, orderColumn: 'id', ascending: true }
+  )
 
-  while (true) {
-    const to = from + PAGE_FETCH_SIZE - 1
-    const { data, error } = await supabase
-      .from(tableName)
-      .select('question_text')
-      .eq('category_id', categoryId)
-      .range(from, to)
-
-    if (error) throw error
-    if (!data || data.length === 0) break
-
-    for (const row of data) {
-      if (typeof row.question_text === 'string' && row.question_text.trim()) {
-        texts.push(row.question_text)
-      }
-    }
-
-    if (data.length < PAGE_FETCH_SIZE) break
-    from += PAGE_FETCH_SIZE
-  }
-
-  return texts
+  return rows
+    .map((row) => row.question_text)
+    .filter((text) => typeof text === 'string' && text.trim())
 }
 
 /**
@@ -177,42 +165,29 @@ export async function fetchCategoryExactQuestionSet(categoryId, { includeStaging
 
 export async function fetchCategoryStagingCount(categoryId) {
   if (!categoryId) return 0
-  const { count, error } = await supabase
-    .from(STAGING_TABLE)
-    .select('id', { count: 'exact', head: true })
-    .eq('category_id', categoryId)
-
-  if (error) {
+  try {
+    return await getTableExactCount(STAGING_TABLE, (q) => q.eq('category_id', categoryId))
+  } catch (error) {
     if (error.code === '42P01' || error.code === '42501') return 0
     throw formatSupabaseStagingError(error, 'ไม่สามารถนับจำนวนข้อสอบ Draft ในตาราง Staging ได้')
   }
-
-  return count || 0
 }
 
 export async function fetchCategoryStagingItems(categoryId) {
   if (!categoryId) return []
-  const items = []
-  let from = 0
-
-  while (true) {
-    const to = from + PAGE_FETCH_SIZE - 1
-    const { data, error } = await supabase
-      .from(STAGING_TABLE)
-      .select('*')
-      .eq('category_id', categoryId)
-      .order('created_at', { ascending: true })
-      .range(from, to)
-
-    if (error) throw formatSupabaseStagingError(error, 'ไม่สามารถดึงรายการข้อสอบ Draft ได้')
-    if (!data || data.length === 0) break
-
-    items.push(...data)
-    if (data.length < PAGE_FETCH_SIZE) break
-    from += PAGE_FETCH_SIZE
+  try {
+    return await fetchAllPaginated(
+      (client) =>
+        client
+          .from(STAGING_TABLE)
+          .select('*')
+          .eq('category_id', categoryId)
+          .order('created_at', { ascending: true }),
+      { pageSize: 1000, orderColumn: 'id', ascending: true }
+    )
+  } catch (error) {
+    throw formatSupabaseStagingError(error, 'ไม่สามารถดึงรายการข้อสอบ Draft ได้')
   }
-
-  return items
 }
 
 /**
@@ -233,35 +208,28 @@ export async function fetchCategoryStagingSnapshot(categoryId) {
 
 export async function fetchPendingStagingItems(categoryId, fingerprint = null) {
   if (!categoryId) return []
-  const items = []
-  let from = 0
+  try {
+    return await fetchAllPaginated(
+      (client) => {
+        let query = client
+          .from(STAGING_TABLE)
+          .select('*')
+          .eq('category_id', categoryId)
+          .eq('answer_status', 'pending_answer')
 
-  while (true) {
-    const to = from + PAGE_FETCH_SIZE - 1
-    let query = supabase
-      .from(STAGING_TABLE)
-      .select('*')
-      .eq('category_id', categoryId)
-      .eq('answer_status', 'pending_answer')
+        if (fingerprint) {
+          query = query.eq('source_file_fingerprint', fingerprint)
+        }
 
-    if (fingerprint) {
-      query = query.eq('source_file_fingerprint', fingerprint)
-    }
-
-    const { data, error } = await query
-      .order('source_page', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: true })
-      .range(from, to)
-
-    if (error) throw formatSupabaseStagingError(error, 'ไม่สามารถดึงข้อสอบที่รอจับคู่/ตรวจเฉลยได้')
-    if (!data || data.length === 0) break
-
-    items.push(...data)
-    if (data.length < PAGE_FETCH_SIZE) break
-    from += PAGE_FETCH_SIZE
+        return query
+          .order('source_page', { ascending: true, nullsFirst: false })
+          .order('created_at', { ascending: true })
+      },
+      { pageSize: 1000, orderColumn: 'id', ascending: true }
+    )
+  } catch (error) {
+    throw formatSupabaseStagingError(error, 'ไม่สามารถดึงข้อสอบที่รอจับคู่/ตรวจเฉลยได้')
   }
-
-  return items
 }
 
 export async function insertStagingItems(rows) {
@@ -366,12 +334,13 @@ export async function resolveStagingOverrideDecision(id, {
 
 export async function deleteStagingItems(ids) {
   if (!Array.isArray(ids) || ids.length === 0) return
-  const { error } = await supabase
-    .from(STAGING_TABLE)
-    .delete()
-    .in('id', ids)
-
-  if (error) throw formatSupabaseStagingError(error, 'ไม่สามารถลบข้อสอบ Draft ได้')
+  await runInBatches(ids, 200, async (chunkIds) => {
+    const { error } = await supabase
+      .from(STAGING_TABLE)
+      .delete()
+      .in('id', chunkIds)
+    if (error) throw formatSupabaseStagingError(error, 'ไม่สามารถลบข้อสอบ Draft ได้')
+  })
 }
 
 export async function clearCategoryStagingItems(categoryId, { clearCheckpoints = true } = {}) {

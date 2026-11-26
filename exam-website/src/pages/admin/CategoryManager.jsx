@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { fetchAllPaginated, runInBatches } from '../../lib/supabasePagination'
 import LoadingScreen from '../../components/common/LoadingScreen'
 import EmptyState from '../../components/common/EmptyState'
 import ConfirmModal from '../../components/common/ConfirmModal'
@@ -61,14 +62,16 @@ export default function CategoryManager() {
   async function fetchCategories(role = userRole, userId = currentUserId) {
     setLoading(true)
     try {
-      let query = supabase.from('categories').select('*')
-      
-      if (role !== 'admin' && userId) {
-        query = query.or(`created_by.eq.${userId},co_owners.cs.{${userId}}`)
-      }
-
-      const { data, error } = await query.order('created_at', { ascending: true })
-      if (error) throw error
+      const data = await fetchAllPaginated(
+        (client) => {
+          let query = client.from('categories').select('*')
+          if (role !== 'admin' && userId) {
+            query = query.or(`created_by.eq.${userId},co_owners.cs.{${userId}}`)
+          }
+          return query.order('created_at', { ascending: true })
+        },
+        { pageSize: 1000, orderColumn: 'id', ascending: true }
+      )
       setCategories(data || [])
     } catch (err) {
       showModal('danger', 'เกิดข้อผิดพลาด', 'ดึงหมวดหมู่ไม่สำเร็จ: ' + err.message)
@@ -201,15 +204,27 @@ export default function CategoryManager() {
     if (!deleteTarget || deleteTarget.length === 0) return
     
     try {
-      const { data: questionsInCat } = await supabase.from('questions').select('image_url, explanation_image_url').in('category_id', deleteTarget)
+      // Paginated fetch ensures ALL images across >1,000 questions in deleted categories are cleaned up!
+      const questionsInCat = await fetchAllPaginated(
+        (client) =>
+          client
+            .from('questions')
+            .select('id, image_url, explanation_image_url')
+            .in('category_id', deleteTarget),
+        { pageSize: 1000, orderColumn: 'id', ascending: true }
+      )
       
       if (questionsInCat && questionsInCat.length > 0) {
         const filesToRemove = []
-        questionsInCat.forEach(q => {
+        questionsInCat.forEach((q) => {
           if (q.image_url) filesToRemove.push(q.image_url.split('/').pop())
           if (q.explanation_image_url) filesToRemove.push(q.explanation_image_url.split('/').pop())
         })
-        if (filesToRemove.length > 0) await supabase.storage.from('exam-images').remove(filesToRemove)
+        if (filesToRemove.length > 0) {
+          await runInBatches(filesToRemove, 200, async (batch) => {
+            await supabase.storage.from('exam-images').remove(batch)
+          })
+        }
       }
 
       const { error } = await supabase.from('categories').delete().in('id', deleteTarget)
