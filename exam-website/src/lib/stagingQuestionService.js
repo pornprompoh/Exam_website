@@ -1,9 +1,7 @@
 import { supabase } from './supabase'
 import {
-  convertMathAndTableToPlainText,
+  matchAnswerKeysToPendingQuestions,
   normalizeForStrictExactMatch,
-  normalizeSourceQuestionNumber,
-  parseAnswerLabelToIndex,
   stripQuestionNumberPrefix
 } from './examTextUtils'
 
@@ -24,6 +22,24 @@ function readLocalCheckpoint(categoryId, fingerprint) {
   } catch {
     return null
   }
+}
+
+function readAllLocalCheckpointsForCategory(categoryId) {
+  if (typeof window === 'undefined' || !categoryId) return []
+  const prefix = `${LOCAL_CHECKPOINT_PREFIX}${categoryId}:`
+  const list = []
+  try {
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i)
+      if (key && key.startsWith(prefix)) {
+        const raw = window.localStorage.getItem(key)
+        if (raw) list.push(JSON.parse(raw))
+      }
+    }
+  } catch {
+    // Ignore storage errors
+  }
+  return list
 }
 
 function writeLocalCheckpoint(categoryId, fingerprint, data) {
@@ -56,15 +72,39 @@ function removeLocalCheckpoint(categoryId, fingerprint) {
 
 function formatSupabaseStagingError(error, fallbackMessage) {
   const msg = String(error?.message || '')
-  if (error?.code === '42P01' || msg.includes(STAGING_TABLE) && msg.includes('does not exist')) {
+  if (error?.code === '42P01' || (msg.includes(STAGING_TABLE) && msg.includes('does not exist'))) {
     return new Error(
-      `ยังไม่พบตาราง "${STAGING_TABLE}" ใน Supabase กรุณารันไฟล์ SQL Migration (supabase/migrations/20261126_create_question_staging.sql) ก่อนใช้งาน`
+      `ยังไม่พบตาราง "${STAGING_TABLE}" ใน Supabase กรุณารันไฟล์ SQL Migration (supabase/migrations/20261126_create_question_staging.sql และ 20261126_upgrade_staging_3pass_pipeline.sql) ก่อนใช้งาน`
+    )
+  }
+  if (
+    error?.code === '42703' ||
+    msg.includes('answer_status') ||
+    msg.includes('book_answer') ||
+    msg.includes('override_reason') ||
+    msg.includes('verified_by_model')
+  ) {
+    return new Error(
+      'โครงสร้างตาราง Staging ยังไม่อัปเดตเป็นเวอร์ชัน 3-Pass Hybrid กรุณารันไฟล์ SQL Migration (supabase/migrations/20261126_upgrade_staging_3pass_pipeline.sql) บน Supabase ก่อนครับ'
     )
   }
   if (error?.code === '42501' || msg.toLowerCase().includes('row-level security')) {
     return new Error('ไม่มีสิทธิ์เข้าถึงตาราง Staging (จำกัดสิทธิ์เฉพาะผู้ดูแลระบบ Admin ตาม RLS Policy)')
   }
   return new Error(msg || fallbackMessage)
+}
+
+/**
+ * Derive a reliable `answer_status` even for older rows that might lack the column.
+ */
+export function resolveItemAnswerStatus(item) {
+  if (!item) return 'pending_answer'
+  if (['pending_answer', 'book_verified', 'ai_overridden', 'ai_solved'].includes(item.answer_status)) {
+    return item.answer_status
+  }
+  if (item.correct_option === null || item.correct_option === undefined) return 'pending_answer'
+  if (item.is_ai_solved) return 'ai_solved'
+  return 'book_verified'
 }
 
 /**
@@ -143,7 +183,6 @@ export async function fetchCategoryStagingCount(categoryId) {
     .eq('category_id', categoryId)
 
   if (error) {
-    // Gracefully return 0 if table isn't migrated yet or non-admin user views QuestionManager
     if (error.code === '42P01' || error.code === '42501') return 0
     throw formatSupabaseStagingError(error, 'ไม่สามารถนับจำนวนข้อสอบ Draft ในตาราง Staging ได้')
   }
@@ -176,6 +215,55 @@ export async function fetchCategoryStagingItems(categoryId) {
   return items
 }
 
+/**
+ * Fetch BOTH exact count (`count: 'exact'`) and full paginated items from Supabase
+ * so UI Draft counters NEVER drift or truncate at 1,000 rows.
+ */
+export async function fetchCategoryStagingSnapshot(categoryId) {
+  if (!categoryId) return { items: [], exactCount: 0 }
+  const [exactCount, items] = await Promise.all([
+    fetchCategoryStagingCount(categoryId),
+    fetchCategoryStagingItems(categoryId)
+  ])
+  return {
+    items,
+    exactCount: Math.max(exactCount, items.length)
+  }
+}
+
+export async function fetchPendingStagingItems(categoryId, fingerprint = null) {
+  if (!categoryId) return []
+  const items = []
+  let from = 0
+
+  while (true) {
+    const to = from + PAGE_FETCH_SIZE - 1
+    let query = supabase
+      .from(STAGING_TABLE)
+      .select('*')
+      .eq('category_id', categoryId)
+      .eq('answer_status', 'pending_answer')
+
+    if (fingerprint) {
+      query = query.eq('source_file_fingerprint', fingerprint)
+    }
+
+    const { data, error } = await query
+      .order('source_page', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
+      .range(from, to)
+
+    if (error) throw formatSupabaseStagingError(error, 'ไม่สามารถดึงข้อสอบที่รอจับคู่/ตรวจเฉลยได้')
+    if (!data || data.length === 0) break
+
+    items.push(...data)
+    if (data.length < PAGE_FETCH_SIZE) break
+    from += PAGE_FETCH_SIZE
+  }
+
+  return items
+}
+
 export async function insertStagingItems(rows) {
   if (!Array.isArray(rows) || rows.length === 0) return []
   const { data, error } = await supabase
@@ -188,19 +276,42 @@ export async function insertStagingItems(rows) {
 }
 
 export async function updateStagingItem(id, updatedFields) {
+  const options = Array.isArray(updatedFields.options)
+    ? updatedFields.options.map((opt) => String(opt ?? '').trim())
+    : []
+
+  const hasValidCorrectOption =
+    updatedFields.correct_option !== null &&
+    updatedFields.correct_option !== undefined &&
+    updatedFields.correct_option !== '' &&
+    Number.isInteger(Number(updatedFields.correct_option)) &&
+    Number(updatedFields.correct_option) >= 0 &&
+    Number(updatedFields.correct_option) < options.length
+
   const payload = {
     question_text: String(updatedFields.question_text ?? '').trim(),
-    options: Array.isArray(updatedFields.options)
-      ? updatedFields.options.map((opt) => String(opt ?? '').trim())
-      : [],
-    correct_option: Number(updatedFields.correct_option),
+    options,
+    correct_option: hasValidCorrectOption ? Number(updatedFields.correct_option) : null,
     explanation: String(updatedFields.explanation ?? '').trim() || null
   }
+
+  if (updatedFields.answer_status) {
+    payload.answer_status = updatedFields.answer_status
+  } else if (hasValidCorrectOption && updatedFields.answer_status === 'pending_answer') {
+    payload.answer_status = 'book_verified'
+  }
+
   if (typeof updatedFields.is_ai_solved === 'boolean') {
     payload.is_ai_solved = updatedFields.is_ai_solved
   }
   if (typeof updatedFields.has_source_answer === 'boolean') {
     payload.has_source_answer = updatedFields.has_source_answer
+  }
+  if (updatedFields.override_reason !== undefined) {
+    payload.override_reason = updatedFields.override_reason || null
+  }
+  if (updatedFields.book_answer !== undefined) {
+    payload.book_answer = updatedFields.book_answer
   }
 
   const { data, error } = await supabase
@@ -211,6 +322,45 @@ export async function updateStagingItem(id, updatedFields) {
     .single()
 
   if (error) throw formatSupabaseStagingError(error, 'ไม่สามารถอัปเดตข้อสอบ Draft ได้')
+  return data
+}
+
+/**
+ * Interactive Audit Action: Admin confirms AI's override OR reverts back to the original book answer.
+ */
+export async function resolveStagingOverrideDecision(id, {
+  decision, // 'confirm_ai' | 'revert_to_book'
+  bookAnswer = null,
+  explanation = undefined
+}) {
+  const payload = {}
+
+  if (decision === 'revert_to_book') {
+    if (bookAnswer === null || bookAnswer === undefined || !Number.isInteger(Number(bookAnswer))) {
+      throw new Error('ไม่พบเฉลยต้นฉบับจากหนังสือสำหรับย้อนกลับ')
+    }
+    payload.correct_option = Number(bookAnswer)
+    payload.answer_status = 'book_verified'
+    payload.is_ai_solved = false
+    payload.has_source_answer = true
+    if (explanation !== undefined) {
+      payload.explanation = String(explanation ?? '').trim() || null
+    }
+  } else {
+    // confirm_ai: keep AI's answer & optional edited explanation
+    if (explanation !== undefined) {
+      payload.explanation = String(explanation ?? '').trim() || null
+    }
+  }
+
+  const { data, error } = await supabase
+    .from(STAGING_TABLE)
+    .update(payload)
+    .eq('id', id)
+    .select('*')
+    .single()
+
+  if (error) throw formatSupabaseStagingError(error, 'ไม่สามารถบันทึกการตัดสินใจเฉลยได้')
   return data
 }
 
@@ -247,177 +397,111 @@ export async function clearCategoryStagingItems(categoryId, { clearCheckpoints =
 }
 
 /**
- * Map standalone answer keys (end-of-chapter / end-of-book) back to matching items
- * in `question_staging_items` for the same `(categoryId, fingerprint)`.
+ * Pass 2 DB Sync:
+ * Matches pending staging questions (`book_answer IS NULL`) for a `(categoryId, fingerprint)`
+ * against the full-file `answerKeyPool` and saves matched `book_answer` + `book_explanation`
+ * into Supabase (keeping `answer_status = 'pending_answer'` ready for Pass 3 verification).
  */
-export async function applyAnswerKeysToStagingItems({
+export async function applyPass2AnswerKeyMatches({
   categoryId,
   fingerprint,
-  answerKeys,
-  regenerateExplanationsFn
+  answerKeyPool
 }) {
-  if (!categoryId || !fingerprint || !Array.isArray(answerKeys) || answerKeys.length === 0) {
-    return { updatedCount: 0, updatedItems: [] }
-  }
+  const pendingRows = await fetchPendingStagingItems(categoryId, fingerprint)
+  const needsMatch = pendingRows.filter((row) => row.book_answer === null || row.book_answer === undefined)
+  const alreadyHasBookAnswer = pendingRows.length - needsMatch.length
 
-  const { data: existingRows, error } = await supabase
-    .from(STAGING_TABLE)
-    .select('*')
-    .eq('category_id', categoryId)
-    .eq('source_file_fingerprint', fingerprint)
-    .order('created_at', { ascending: true })
+  const { matched, unmatched } = matchAnswerKeysToPendingQuestions(needsMatch, answerKeyPool)
 
-  if (error) throw formatSupabaseStagingError(error, 'ไม่สามารถจับคู่เฉลยกับข้อสอบใน Staging ได้')
-  if (!existingRows || existingRows.length === 0) {
-    return { updatedCount: 0, updatedItems: [] }
-  }
-
-  // Build candidate matches; prefer section match + unresolved (`has_source_answer === false`)
-  const updatesToApply = []
-  const itemsNeedingExplanation = []
-  const matchedIds = new Set()
-
-  for (const rawKey of answerKeys) {
-    const qNum = normalizeSourceQuestionNumber(rawKey?.source_question_number ?? rawKey?.question_number)
-    if (!qNum) continue
-
-    const keySection = String(rawKey?.source_section ?? rawKey?.section ?? '').trim().toLowerCase()
-
-    const candidates = existingRows.filter((row) => (
-      !matchedIds.has(row.id) &&
-      normalizeSourceQuestionNumber(row.source_question_number) === qNum
-    ))
-
-    if (candidates.length === 0) continue
-
-    // Priority 1: exact section match + unresolved
-    // Priority 2: exact section match
-    // Priority 3: unresolved item closest before the answer key page
-    // Priority 4: latest unresolved item / first candidate
-    const keyPage = Number(rawKey?.source_page) || Number.MAX_SAFE_INTEGER
-
-    let target = null
-    if (keySection) {
-      target =
-        candidates.find((r) => (r.source_section || '').trim().toLowerCase() === keySection && !r.has_source_answer) ||
-        candidates.find((r) => (r.source_section || '').trim().toLowerCase() === keySection)
-    }
-    if (!target) {
-      const beforeKeyPage = candidates.filter((r) => (r.source_page || 0) <= keyPage)
-      const unresolvedBefore = beforeKeyPage.filter((r) => !r.has_source_answer)
-      if (unresolvedBefore.length > 0) {
-        // Choose the most recent section/chapter item prior to this answer key
-        target = unresolvedBefore[unresolvedBefore.length - 1]
-      } else {
-        const unresolvedAny = candidates.filter((r) => !r.has_source_answer)
-        target = unresolvedAny[0] || beforeKeyPage[beforeKeyPage.length - 1] || candidates[0]
-      }
-    }
-
-    if (!target) continue
-
-    const optionCount = Array.isArray(target.options) ? target.options.length : 0
-    let answerIdx = Number.isInteger(Number(rawKey?.answer_index)) && rawKey.answer_index !== '' && rawKey.answer_index !== null
-      ? Number(rawKey.answer_index)
-      : null
-
-    if (answerIdx === null || answerIdx < 0 || answerIdx >= optionCount) {
-      answerIdx = parseAnswerLabelToIndex(
-        rawKey?.answer_label ?? rawKey?.answer ?? rawKey?.correct_option,
-        optionCount,
-        target.options
-      )
-    }
-
-    if (answerIdx === null || answerIdx < 0 || answerIdx >= optionCount) continue
-
-    matchedIds.add(target.id)
-    const keyExplanation = convertMathAndTableToPlainText(
-      String(rawKey?.explanation_from_key ?? rawKey?.explanation ?? '').trim()
-    )
-    const answerChanged = Number(target.correct_option) !== answerIdx
-
-    const nextUpdate = {
-      id: target.id,
-      target,
-      correct_option: answerIdx,
-      has_source_answer: true,
-      is_ai_solved: false,
-      explanation: keyExplanation || target.explanation || ''
-    }
-
-    if (!keyExplanation && (answerChanged || !target.explanation)) {
-      itemsNeedingExplanation.push(nextUpdate)
-    }
-
-    updatesToApply.push(nextUpdate)
-  }
-
-  // If official answer keys differed from AI-inferred answers and had no explanation, regenerate concise explanations
-  if (itemsNeedingExplanation.length > 0 && typeof regenerateExplanationsFn === 'function') {
-    try {
-      const regeneratedMap = await regenerateExplanationsFn(
-        itemsNeedingExplanation.map((entry) => ({
-          id: entry.id,
-          question_text: entry.target.question_text,
-          options: entry.target.options,
-          correct_option: entry.correct_option
-        }))
-      )
-      for (const entry of itemsNeedingExplanation) {
-        const freshExp = regeneratedMap?.get(entry.id)
-        if (freshExp) {
-          entry.explanation = convertMathAndTableToPlainText(freshExp)
-        } else if (!entry.explanation || Number(entry.target.correct_option) !== entry.correct_option) {
-          const correctText = entry.target.options?.[entry.correct_option] || ''
-          entry.explanation = `เฉลยตามเอกสารคือ "${correctText}"`
-        }
-      }
-    } catch (expError) {
-      console.warn('สร้างคำอธิบายใหม่หลังจับคู่เฉลยไม่สำเร็จ ใช้ข้อความสำรองแทน:', expError)
-      for (const entry of itemsNeedingExplanation) {
-        if (Number(entry.target.correct_option) !== entry.correct_option || !entry.explanation) {
-          const correctText = entry.target.options?.[entry.correct_option] || ''
-          entry.explanation = `เฉลยตามเอกสารคือ "${correctText}"`
-        }
-      }
-    }
-  }
-
-  const updatedItems = []
-  for (const update of updatesToApply) {
-    const { data, error: updateErr } = await supabase
+  let updatedCount = 0
+  for (const entry of matched) {
+    const { error } = await supabase
       .from(STAGING_TABLE)
       .update({
-        correct_option: update.correct_option,
+        book_answer: entry.book_answer,
+        correct_option: entry.book_answer,
         has_source_answer: true,
-        is_ai_solved: false,
-        explanation: update.explanation || null
+        book_explanation: entry.book_explanation || entry.question.book_explanation || null
       })
-      .eq('id', update.id)
-      .select('*')
-      .single()
+      .eq('id', entry.question.id)
 
-    if (!updateErr && data) {
-      updatedItems.push(data)
-    }
+    if (!error) updatedCount += 1
   }
 
   return {
-    updatedCount: updatedItems.length,
-    updatedItems
+    totalPending: pendingRows.length,
+    alreadyHadInlineBookAnswer: alreadyHasBookAnswer,
+    matchedFromKeyPool: updatedCount,
+    unmatchedForAiSolve: unmatched.length
   }
 }
 
 /**
+ * Pass 3 Incremental Batch Save:
+ * Persists Pass 3 verification / override / solve results immediately after every batch.
+ * Never overwrites `book_answer`.
+ */
+export async function savePass3BatchResults(batchUpdates) {
+  if (!Array.isArray(batchUpdates) || batchUpdates.length === 0) return []
+
+  const savedRows = []
+  for (const item of batchUpdates) {
+    const payload = {
+      correct_option: Number(item.correct_option),
+      answer_status: item.answer_status,
+      is_ai_solved: item.answer_status === 'ai_solved' || item.answer_status === 'ai_overridden',
+      has_source_answer: item.answer_status === 'book_verified' || item.answer_status === 'ai_overridden',
+      explanation: String(item.explanation ?? '').trim() || null,
+      override_reason: item.answer_status === 'ai_overridden'
+        ? (String(item.override_reason ?? '').trim() || null)
+        : null,
+      verified_by_model: item.verified_by_model || null
+    }
+
+    const { data, error } = await supabase
+      .from(STAGING_TABLE)
+      .update(payload)
+      .eq('id', item.id)
+      .select('*')
+      .single()
+
+    if (error) {
+      throw formatSupabaseStagingError(error, 'ไม่สามารถบันทึกผล Pass 3 ลงตาราง Staging ได้')
+    }
+    if (data) savedRows.push(data)
+  }
+
+  return savedRows
+}
+
+/**
  * Publish selected (or all) staging items into `public.questions`.
- * Performs a final Category-Scoped Strict Exact Match check against `public.questions`,
- * inserts valid non-duplicate items, and deletes published items from Staging.
+ * Blocks any item still in `pending_answer` or missing a valid `correct_option`.
+ * Performs a final Category-Scoped Strict Exact Match check against `public.questions`.
  */
 export async function publishStagingItems({ categoryId, items, currentUserId }) {
   if (!categoryId) throw new Error('กรุณาเลือกหมวดหมู่วิชาก่อนเผยแพร่')
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error('ไม่มีข้อสอบ Draft ที่เลือกสำหรับเผยแพร่')
+  }
+
+  const pendingOrIncomplete = items.filter((item) => {
+    const status = resolveItemAnswerStatus(item)
+    const optionCount = Array.isArray(item.options) ? item.options.length : 0
+    return (
+      status === 'pending_answer' ||
+      item.correct_option === null ||
+      item.correct_option === undefined ||
+      !Number.isInteger(Number(item.correct_option)) ||
+      Number(item.correct_option) < 0 ||
+      Number(item.correct_option) >= optionCount
+    )
+  })
+
+  if (pendingOrIncomplete.length > 0) {
+    throw new Error(
+      `พบข้อสอบที่ยังรอจับคู่/ตรวจเฉลย (pending_answer) จำนวน ${pendingOrIncomplete.length} ข้อ กรุณากดปุ่ม "ดำเนินการจับคู่และตรวจเฉลยต่อ (Pass 2–3)" หรือแก้ไขระบุเฉลยให้ครบก่อนเผยแพร่ครับ`
+    )
   }
 
   // Final category-scoped strict exact match check against main `questions` table
@@ -460,7 +544,6 @@ export async function publishStagingItems({ categoryId, items, currentUserId }) 
     })
   }
 
-  // Insert in safe chunks of 100 rows to handle very large publishes (e.g. 500+ questions)
   const INSERT_BATCH_SIZE = 100
   const publishedStagingIds = []
 
@@ -471,7 +554,6 @@ export async function publishStagingItems({ categoryId, items, currentUserId }) 
       .insert(slice.map((entry) => entry.payload))
 
     if (insertError) {
-      // Remove any previously published batches from staging before throwing
       if (publishedStagingIds.length > 0) {
         await deleteStagingItems(publishedStagingIds)
       }
@@ -481,8 +563,6 @@ export async function publishStagingItems({ categoryId, items, currentUserId }) 
     publishedStagingIds.push(...slice.map((entry) => entry.stagingId))
   }
 
-  // Clean up published items from staging (also remove exact duplicates from staging if desired?
-  // Keep duplicates out of main table and remove only published items so admin can inspect/delete duplicates)
   for (let i = 0; i < publishedStagingIds.length; i += INSERT_BATCH_SIZE) {
     await deleteStagingItems(publishedStagingIds.slice(i, i + INSERT_BATCH_SIZE))
   }
@@ -495,7 +575,7 @@ export async function publishStagingItems({ categoryId, items, currentUserId }) 
 }
 
 // ============================================================================
-// Checkpoint Persistence (Supabase + LocalStorage Mirror)
+// Checkpoint Persistence (Supabase + LocalStorage Mirror, includes Answer Key Pool)
 // ============================================================================
 
 export async function loadExtractionCheckpoint(categoryId, fingerprint) {
@@ -510,16 +590,48 @@ export async function loadExtractionCheckpoint(categoryId, fingerprint) {
       .eq('source_file_fingerprint', fingerprint)
       .maybeSingle()
 
-    if (error) {
-      return local
-    }
+    if (error) return local
 
     if (data && local) {
+      const dbPass = Number(data.current_pass || 1)
+      const localPass = Number(local.current_pass || 1)
+      if (dbPass !== localPass) return dbPass > localPass ? data : local
+      const dbPoolLen = Array.isArray(data.answer_key_pool) ? data.answer_key_pool.length : 0
+      const localPoolLen = Array.isArray(local.answer_key_pool) ? local.answer_key_pool.length : 0
+      if (Number(data.last_completed_page || 0) === Number(local.last_completed_page || 0)) {
+        return dbPoolLen >= localPoolLen ? data : local
+      }
       return Number(data.last_completed_page || 0) >= Number(local.last_completed_page || 0) ? data : local
     }
     return data || local
   } catch {
     return local
+  }
+}
+
+export async function loadCategoryCheckpoints(categoryId) {
+  if (!categoryId) return []
+  const localList = readAllLocalCheckpointsForCategory(categoryId)
+
+  try {
+    const { data, error } = await supabase
+      .from(CHECKPOINT_TABLE)
+      .select('*')
+      .eq('category_id', categoryId)
+      .order('updated_at', { ascending: false })
+
+    if (error) return localList
+
+    const byFingerprint = new Map()
+    for (const row of localList) {
+      if (row?.source_file_fingerprint) byFingerprint.set(row.source_file_fingerprint, row)
+    }
+    for (const row of data || []) {
+      if (row?.source_file_fingerprint) byFingerprint.set(row.source_file_fingerprint, row)
+    }
+    return [...byFingerprint.values()]
+  } catch {
+    return localList
   }
 }
 
@@ -529,11 +641,17 @@ export async function saveExtractionCheckpoint(checkpoint) {
   const record = {
     category_id: checkpoint.category_id,
     source_file_fingerprint: checkpoint.source_file_fingerprint,
-    source_file_name: checkpoint.source_file_name,
+    source_file_name: checkpoint.source_file_name || 'unknown',
     total_pages: Number(checkpoint.total_pages) || 1,
     last_completed_page: Number(checkpoint.last_completed_page) || 0,
     pending_tail_text: checkpoint.pending_tail_text || null,
     pending_tail_page: checkpoint.pending_tail_page || null,
+    current_pass: Number(checkpoint.current_pass) || 1,
+    last_section: checkpoint.last_section || null,
+    answer_key_pool: Array.isArray(checkpoint.answer_key_pool) ? checkpoint.answer_key_pool : [],
+    escalation_queue: Array.isArray(checkpoint.escalation_queue) ? checkpoint.escalation_queue : [],
+    pass3_processed_count: Number(checkpoint.pass3_processed_count) || 0,
+    pass3_total_count: Number(checkpoint.pass3_total_count) || 0,
     stats: checkpoint.stats || {},
     status: checkpoint.status || 'in_progress',
     created_by: checkpoint.created_by || null
@@ -549,7 +667,7 @@ export async function saveExtractionCheckpoint(checkpoint) {
       .from(CHECKPOINT_TABLE)
       .upsert(record, { onConflict: 'category_id,source_file_fingerprint' })
   } catch {
-    // LocalStorage mirror keeps checkpoint safe even if table isn't migrated yet
+    // LocalStorage mirror preserves checkpoint & Answer Key Pool even if DB table lags
   }
 }
 

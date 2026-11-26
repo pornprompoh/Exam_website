@@ -7,6 +7,7 @@ import ConfirmModal from '../../components/common/ConfirmModal'
 import BulkImportModal from '../../components/admin/BulkImportModal'
 import AIExamGeneratorModal from '../../components/admin/AIExamGeneratorModal'
 import AIExamExtractorModal from '../../components/admin/AIExamExtractorModal'
+import AIExamAuditorModal from '../../components/admin/AIExamAuditorModal'
 import AIKeyRequiredModal from '../../components/admin/AIKeyRequiredModal'
 import QuestionForm from '../../components/admin/QuestionForm'
 import QuestionTable from '../../components/admin/QuestionTable'
@@ -17,6 +18,7 @@ import {
   clearCategoryStagingItems,
   fetchCategoryStagingCount
 } from '../../lib/stagingQuestionService'
+import { fetchFlaggedBadgeCounts } from '../../lib/aiExamAuditorService'
 
 const ITEMS_PER_PAGE = 10
 
@@ -49,6 +51,9 @@ export default function QuestionManager() {
   const [extractorInitialTab, setExtractorInitialTab] = useState('extract')
   const [stagingCount, setStagingCount] = useState(0)
   const [showClearStagingConfirm, setShowClearStagingConfirm] = useState(false)
+  const [showAIAuditorModal, setShowAIAuditorModal] = useState(false)
+  const [auditorInitialTab, setAuditorInitialTab] = useState('scan')
+  const [flaggedCounts, setFlaggedCounts] = useState({ categoryFlagged: 0, totalFlagged: 0 })
   const [showAIKeyRequired, setShowAIKeyRequired] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
@@ -88,7 +93,29 @@ export default function QuestionManager() {
     setShowAIKeyRequired(false)
     setShowAIGeneratorModal(false)
     setShowAIExtractorModal(false)
+    setShowAIAuditorModal(false)
     navigate('/admin/ai-settings')
+  }
+
+  const refreshFlaggedCounts = async (catId) => {
+    const counts = await fetchFlaggedBadgeCounts(catId)
+    setFlaggedCounts(counts)
+  }
+
+  const handleOpenAIAuditor = (initialTab = 'scan') => {
+    if (initialTab === 'scan') {
+      try {
+        if (!getGeminiApiKey()) {
+          setShowAIKeyRequired(true)
+          return
+        }
+      } catch (error) {
+        showModal('warning', 'ไม่สามารถตรวจสอบ API Key ได้', error.message)
+        return
+      }
+    }
+    setAuditorInitialTab(initialTab)
+    setShowAIAuditorModal(true)
   }
 
   const refreshStagingCount = async (catId, role = userRole) => {
@@ -151,6 +178,7 @@ export default function QuestionManager() {
             setCurrentPage(1)
             fetchQuestions(validCats[0].id, 1, 'asc', role, session.user.id)
             refreshStagingCount(validCats[0].id, role)
+            refreshFlaggedCounts(validCats[0].id)
           } else {
             setQuestions([])
             setLoading(false)
@@ -210,6 +238,7 @@ export default function QuestionManager() {
     setSelectedIds([]) // 🌟 เปลี่ยนวิชา ให้ล้างรายการที่เลือกไว้ทันที
     fetchQuestions(newCatId, 1, sortOrder)
     refreshStagingCount(newCatId, userRole)
+    refreshFlaggedCounts(newCatId)
   }
 
   const handleToggleSortOrder = () => {
@@ -494,6 +523,27 @@ export default function QuestionManager() {
           setSelectedIds([])
           fetchQuestions(selectedCat, 1, sortOrder)
           refreshStagingCount(selectedCat, userRole)
+          refreshFlaggedCounts(selectedCat)
+        }}
+      />
+
+      <AIExamAuditorModal
+        key={`ai-auditor-${selectedCat || 'ALL'}-${auditorInitialTab}-${showAIAuditorModal ? 'open' : 'closed'}`}
+        isOpen={showAIAuditorModal}
+        onClose={() => {
+          setShowAIAuditorModal(false)
+          refreshFlaggedCounts(selectedCat)
+        }}
+        categories={categories}
+        categoryId={auditorInitialTab === 'flagged' && flaggedCounts.categoryFlagged === 0 && flaggedCounts.totalFlagged > 0 ? 'ALL' : selectedCat}
+        initialTab={auditorInitialTab}
+        onNotify={showModal}
+        onGoToSettings={handleGoToAISettings}
+        onQuestionsChanged={({ reloadTable = false } = {}) => {
+          refreshFlaggedCounts(selectedCat)
+          if (reloadTable) {
+            fetchQuestions(selectedCat, currentPage, sortOrder)
+          }
         }}
       />
 
@@ -568,8 +618,54 @@ export default function QuestionManager() {
           <button onClick={() => handleOpenAIExtractor('extract')} disabled={categories.length === 0} className="flex-1 px-4 py-3 bg-sky-500/10 hover:bg-sky-500/20 disabled:opacity-30 border border-sky-500/30 text-sky-300 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0">
             <span>📄 AI ดึงข้อสอบจากไฟล์</span>
           </button>
+          <button onClick={() => handleOpenAIAuditor(flaggedCounts.categoryFlagged > 0 ? 'flagged' : 'scan')} disabled={categories.length === 0} className="flex-1 px-4 py-3 bg-violet-500/10 hover:bg-violet-500/20 disabled:opacity-30 border border-violet-500/35 text-violet-300 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0">
+            <span>🔍 AI ตรวจทานเฉลย</span>
+            {(flaggedCounts.categoryFlagged > 0 || flaggedCounts.totalFlagged > 0) && (
+              <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[11px] font-mono font-black text-white shadow">
+                {flaggedCounts.categoryFlagged > 0 ? flaggedCounts.categoryFlagged : `ทั้งหมด ${flaggedCounts.totalFlagged}`}
+              </span>
+            )}
+          </button>
         </QuestionFilterBar>
       </div>
+
+      {(flaggedCounts.categoryFlagged > 0 || flaggedCounts.totalFlagged > 0) && (
+        <div className="rounded-3xl border border-rose-500/35 bg-rose-500/10 p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg shadow-rose-500/5">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="w-10 h-10 rounded-2xl bg-rose-500/20 text-rose-300 border border-rose-500/35 flex items-center justify-center text-lg shrink-0">
+              🚩
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-black text-white">
+                  พบข้อสอบที่ AI ตรวจทานว่าเฉลยอาจผิด (Flagged)
+                </h3>
+                {flaggedCounts.categoryFlagged > 0 && (
+                  <span className="rounded-full bg-rose-500 px-2.5 py-0.5 text-xs font-mono font-black text-white">
+                    วิชานี้ {flaggedCounts.categoryFlagged} ข้อ
+                  </span>
+                )}
+                {flaggedCounts.totalFlagged > flaggedCounts.categoryFlagged && (
+                  <span className="rounded-full bg-slate-800 border border-rose-500/30 px-2.5 py-0.5 text-xs font-mono font-bold text-rose-200">
+                    ทั้งระบบ {flaggedCounts.totalFlagged} ข้อ
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-rose-100/80 mt-0.5">
+                ระบบยังไม่ได้แก้เฉลยจริงอัตโนมัติ กรุณากดเปิดตรวจสอบเหตุผลเพื่ออนุมัติหรือคงเฉลยเดิม
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleOpenAIAuditor('flagged')}
+            className="px-4 py-2.5 rounded-2xl text-xs font-black bg-rose-600 hover:bg-rose-500 text-white shadow transition-all cursor-pointer flex items-center gap-2 shrink-0"
+          >
+            <span>👀</span>
+            <span>เปิดตรวจรายการ Flagged</span>
+          </button>
+        </div>
+      )}
 
       {userRole === 'admin' && selectedCat && (
         <div className={`rounded-3xl border p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
