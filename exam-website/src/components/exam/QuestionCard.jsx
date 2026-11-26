@@ -83,11 +83,15 @@ export default function QuestionCard({
           {!isLastQuestion ? (
             <button type="button" onClick={onNext} className="flex-1 sm:flex-none py-2.5 sm:py-2.5 px-5 sm:px-6 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-sm flex items-center justify-center gap-1.5 shrink-0"><span>ข้อถัดไป</span><span>→</span></button>
           ) : examPhase === 'testing' && (
-            isAllAnswered ? (
-              <button type="button" onClick={onSubmit} disabled={saving} className="w-full sm:w-auto py-3 sm:px-6 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-md hover:shadow-lg flex items-center justify-center gap-2 shrink-0 order-first sm:order-none mb-2 sm:mb-0"><span>✨</span><span>ส่งข้อสอบและตรวจคะแนน</span></button>
-            ) : (
-              <div className="w-full sm:w-auto py-2.5 px-4 sm:px-5 bg-amber-50 border border-amber-200 text-amber-800 font-bold rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shrink-0 order-first sm:order-none mb-2 sm:mb-0 text-center"><span>⚠️ กรุณาทำข้อสอบให้ครบทุกข้อก่อนส่ง</span></div>
-            )
+            <button
+              type="button"
+              onClick={onSubmit}
+              disabled={saving}
+              className="w-full sm:w-auto py-3 sm:px-6 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 disabled:opacity-50 text-white font-bold rounded-xl text-xs sm:text-sm transition-all cursor-pointer shadow-md hover:shadow-lg flex items-center justify-center gap-2 shrink-0 order-first sm:order-none mb-2 sm:mb-0"
+            >
+              <span>✨</span>
+              <span>{isAllAnswered ? 'ส่งข้อสอบและตรวจคะแนน' : 'ส่งข้อสอบเลย (ดูเฉลย)'}</span>
+            </button>
           )}
         </div>
       </div>

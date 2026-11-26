@@ -213,7 +213,10 @@ export default function QuestionManager() {
       let query = supabase.from('questions').select('*', { count: 'exact' }).eq('category_id', catId)
       if (role !== 'admin' && userId) query = query.eq('created_by', userId)
 
-      const { data, error, count } = await query.order('created_at', { ascending: order === 'asc' }).range(fromIndex, toIndex)
+      const { data, error, count } = await query
+        .order('created_at', { ascending: order === 'asc' })
+        .order('id', { ascending: order === 'asc' })
+        .range(fromIndex, toIndex)
       if (error) throw error
 
       if (data && data.length === 0 && page > 1) {

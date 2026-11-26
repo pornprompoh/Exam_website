@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { fetchAllPaginated, getTableExactCount } from '../lib/supabasePagination'
 
 export default function useCategories({
   activeOnly = true,
@@ -16,28 +16,30 @@ export default function useCategories({
     setLoading(true)
     setError(null)
     try {
-      let query = supabase.from('categories').select('*')
-      if (filters.activeOnly) query = query.eq('is_active', true)
-      if (filters.createdBy) query = query.eq('created_by', filters.createdBy)
-      const { data, error: categoriesError } = await query.order('name')
-      if (categoriesError) throw categoriesError
+      const rows = await fetchAllPaginated(
+        (client) => {
+          let query = client.from('categories').select('*')
+          if (filters.activeOnly) query = query.eq('is_active', true)
+          if (filters.createdBy) query = query.eq('created_by', filters.createdBy)
+          return query.order('name', { ascending: true })
+        },
+        { pageSize: 1000, orderColumn: 'id' }
+      )
 
-      const rows = data || []
       if (!filters.includeQuestionCounts || rows.length === 0) {
         setCategories(rows)
         return rows
       }
 
-      const questionCounts = await Promise.all(rows.map(async (category) => {
-        const { count, error: questionError } = await supabase
-          .from('questions')
-          .select('id', { count: 'exact', head: true })
-          .eq('category_id', category.id)
-          .eq('is_active', true)
-        if (questionError) throw questionError
-        return count || 0
+      const questionCounts = await Promise.all(
+        rows.map((category) =>
+          getTableExactCount('questions', (q) => q.eq('category_id', category.id).eq('is_active', true))
+        )
+      )
+      const categoriesWithCounts = rows.map((category, index) => ({
+        ...category,
+        questionCount: questionCounts[index]
       }))
-      const categoriesWithCounts = rows.map((category, index) => ({ ...category, questionCount: questionCounts[index] }))
       setCategories(categoriesWithCounts)
       return categoriesWithCounts
     } catch (loadError) {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { fetchAllPaginated, getTableExactCount } from '../lib/supabasePagination'
 
 const initialAnalytics = {
   sessions: [],
@@ -24,27 +25,41 @@ export default function useAnalytics() {
         setAnalytics(initialAnalytics)
         return
       }
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('exam_sessions')
-        .select('*, categories ( name )')
-        .eq('user_id', session.user.id)
-        .order('completed_at', { ascending: false })
-      if (sessionError) throw sessionError
-      const sessions = sessionData || []
 
-      const { data: mistakeData, error: mistakeError } = await supabase
-        .from('mistake_bank')
-        .select('id, is_resolved')
-        .eq('user_id', session.user.id)
-      if (mistakeError) throw mistakeError
+      // Paginated fetch eliminates 1,000-row ceiling on exam_sessions & user_question_history,
+      // and uses exact head counts for mistake_bank resolved rate!
+      const [sessionsRaw, totalMistakesCount, resolvedMistakesCount] = await Promise.all([
+        fetchAllPaginated(
+          (client) =>
+            client
+              .from('exam_sessions')
+              .select('*, categories ( name )')
+              .eq('user_id', session.user.id)
+              .order('completed_at', { ascending: false }),
+          { pageSize: 1000, orderColumn: 'id' }
+        ),
+        getTableExactCount('mistake_bank', (q) => q.eq('user_id', session.user.id)),
+        getTableExactCount('mistake_bank', (q) => q.eq('user_id', session.user.id).eq('is_resolved', true))
+      ])
 
-      const { data: historyData, error: historyError } = await supabase
-        .from('user_question_history')
-        .select('question_id, seen_count, last_result')
-        .eq('user_id', session.user.id)
-      if (historyError) console.error('ไม่สามารถโหลดประวัติข้อสอบรายข้อได้ จะใช้สถิติจากรอบสอบแทน:', historyError.message)
+      const sessions = sessionsRaw.sort(
+        (a, b) => new Date(b.completed_at || 0).getTime() - new Date(a.completed_at || 0).getTime()
+      )
 
-      const history = historyData || []
+      let history = []
+      try {
+        history = await fetchAllPaginated(
+          (client) =>
+            client
+              .from('user_question_history')
+              .select('question_id, seen_count, last_result')
+              .eq('user_id', session.user.id),
+          { pageSize: 1000, orderColumn: 'question_id' }
+        )
+      } catch (historyError) {
+        console.error('ไม่สามารถโหลดประวัติข้อสอบรายข้อได้ จะใช้สถิติจากรอบสอบแทน:', historyError.message)
+      }
+
       const totalSessionCount = sessions.length
       const sessionQuestionCount = sessions.reduce((sum, item) => sum + (item.total_questions || 0), 0)
       const sessionScore = sessions.reduce((sum, item) => sum + (item.score || 0), 0)
@@ -56,9 +71,10 @@ export default function useAnalytics() {
         : sessionQuestionCount > 0
           ? ((sessionScore / sessionQuestionCount) * 100).toFixed(1)
           : 0
-      const mistakes = mistakeData || []
-      const resolvedMistakeCount = mistakes.filter((item) => item.is_resolved).length
-      const resolved = mistakes.length > 0 ? ((resolvedMistakeCount / mistakes.length) * 100).toFixed(1) : 100
+
+      const resolved = totalMistakesCount > 0
+        ? ((resolvedMistakesCount / totalMistakesCount) * 100).toFixed(1)
+        : 100
 
       const subjectMap = {}
       sessions.forEach((item) => {

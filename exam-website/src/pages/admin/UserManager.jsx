@@ -1,6 +1,7 @@
 /* eslint-disable react-hooks/immutability, react-hooks/exhaustive-deps */
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { fetchAllPaginated } from '../../lib/supabasePagination'
 import LoadingScreen from '../../components/common/LoadingScreen'
 import EmptyState from '../../components/common/EmptyState'
 import ConfirmModal from '../../components/common/ConfirmModal'
@@ -31,12 +32,14 @@ export default function UserManager() {
       const { data: { session } } = await supabase.auth.getSession()
       if (session) setCurrentUserId(session.user.id)
 
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
+      const data = await fetchAllPaginated(
+        (client) =>
+          client
+            .from('profiles')
+            .select('*')
+            .order('created_at', { ascending: false }),
+        { pageSize: 1000, orderColumn: 'id', ascending: true }
+      )
       setUsers(data || [])
     } catch (err) {
       showAlert('danger', 'เกิดข้อผิดพลาด', 'ไม่สามารถดึงรายชื่อผู้ใช้งานได้: ' + err.message)

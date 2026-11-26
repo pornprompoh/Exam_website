@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import { runInBatches } from '../../lib/supabasePagination'
 import { useModal } from '../../context/ModalContext'
 
 export default function BulkImportModal({ isOpen, onClose, categoryId, currentUserId, onSuccess }) {
@@ -130,8 +131,10 @@ EXP: [พิมพ์คำอธิบายเฉลยหากมี ถ้�
         created_by: currentUserId || null
       }))
 
-      const { error } = await supabase.from('questions').insert(payloadToInsert)
-      if (error) throw error
+      await runInBatches(payloadToInsert, 100, async (batch) => {
+        const { error } = await supabase.from('questions').insert(batch)
+        if (error) throw error
+      })
 
       const statusText = asActive ? 'เปิดใช้งานและพร้อมสอบทันที' : 'ฉบับร่าง (ซ่อนจากผู้สอบเพื่อรอเพิ่มรูปประกอบ)'
       showModal({
