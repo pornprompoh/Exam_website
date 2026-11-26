@@ -1,6 +1,19 @@
 import { getGeminiApiKey } from '../../../lib/geminiApiKey'
 
-export default function FileUploadDropzone({ files, onFilesChange, onRequireApiKey }) {
+export default function FileUploadDropzone({
+  files,
+  onFilesChange,
+  onRequireApiKey,
+  accept = '.pdf,.txt,application/pdf,text/plain',
+  maxFileSizeMb = 10,
+  maxFiles = 10,
+  label = 'ไฟล์เอกสาร (PDF/TXT สูงสุด 10 ไฟล์, ไฟล์ละไม่เกิน 10 MB)',
+  helperText = 'หรือลากไฟล์มาวางที่นี่',
+  multiple = true,
+  required = true,
+  disabled = false,
+  validateFiles = null
+}) {
   const ensureApiKey = () => {
     try {
       if (getGeminiApiKey()) return true
@@ -15,19 +28,30 @@ export default function FileUploadDropzone({ files, onFilesChange, onRequireApiK
   }
 
   const handleFiles = (selectedFiles) => {
-    const oversized = selectedFiles.find((file) => file.size > 10 * 1024 * 1024)
-    if (oversized) {
-      onFilesChange([], `ไฟล์ "${oversized.name}" มีขนาดเกิน 10 MB`)
+    if (typeof validateFiles === 'function') {
+      const customError = validateFiles(selectedFiles)
+      if (customError) {
+        onFilesChange([], customError)
+        return
+      }
+      onFilesChange(selectedFiles, '')
       return
     }
-    if (selectedFiles.length > 10) {
-      onFilesChange([], 'เลือกไฟล์ได้ไม่เกิน 10 ไฟล์ต่อครั้ง')
+
+    const oversized = selectedFiles.find((file) => file.size > maxFileSizeMb * 1024 * 1024)
+    if (oversized) {
+      onFilesChange([], `ไฟล์ "${oversized.name}" มีขนาดเกิน ${maxFileSizeMb} MB`)
+      return
+    }
+    if (selectedFiles.length > maxFiles) {
+      onFilesChange([], `เลือกไฟล์ได้ไม่เกิน ${maxFiles} ไฟล์ต่อครั้ง`)
       return
     }
     onFilesChange(selectedFiles, '')
   }
 
   const handleChange = (event) => {
+    if (disabled) return
     if (!ensureApiKey()) {
       event.target.value = ''
       return
@@ -36,11 +60,16 @@ export default function FileUploadDropzone({ files, onFilesChange, onRequireApiK
   }
 
   const handleInputClick = (event) => {
+    if (disabled) {
+      event.preventDefault()
+      return
+    }
     if (!ensureApiKey()) event.preventDefault()
   }
 
   const handleDrop = (event) => {
     event.preventDefault()
+    if (disabled) return
     if (!ensureApiKey()) return
     handleFiles([...event.dataTransfer.files])
   }
@@ -49,20 +78,27 @@ export default function FileUploadDropzone({ files, onFilesChange, onRequireApiK
     <div
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
-      className="rounded-2xl border border-dashed border-slate-700 p-4 transition-colors hover:border-indigo-500/60"
+      className={`rounded-2xl border border-dashed border-slate-700 p-4 transition-colors ${
+        disabled ? 'opacity-50 pointer-events-none' : 'hover:border-indigo-500/60'
+      }`}
     >
-      <label className="text-xs font-bold text-slate-300">ไฟล์เอกสาร (PDF/TXT สูงสุด 10 ไฟล์, ไฟล์ละไม่เกิน 10 MB)</label>
+      <label className="text-xs font-bold text-slate-300">{label}</label>
       <input
         type="file"
-        accept=".pdf,.txt,application/pdf,text/plain"
-        multiple
-        required
+        accept={accept}
+        multiple={multiple}
+        required={required}
+        disabled={disabled}
         onClick={handleInputClick}
         onChange={handleChange}
         className="mt-2 block w-full rounded-xl bg-slate-950 p-4 text-sm text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-white"
       />
-      <p className="mt-2 text-center text-xs text-slate-500">หรือลากไฟล์มาวางที่นี่</p>
-      {files.length > 0 && <p className="mt-2 text-xs text-indigo-300">เลือกแล้ว {files.length} ไฟล์: {files.map((file) => file.name).join(', ')}</p>}
+      <p className="mt-2 text-center text-xs text-slate-500">{helperText}</p>
+      {files.length > 0 && (
+        <p className="mt-2 text-xs text-indigo-300 break-words">
+          เลือกแล้ว {files.length} ไฟล์: {files.map((file) => file.name).join(', ')}
+        </p>
+      )}
     </div>
   )
 }

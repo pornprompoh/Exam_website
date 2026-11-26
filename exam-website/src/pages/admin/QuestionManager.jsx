@@ -6,12 +6,17 @@ import { getGeminiApiKey } from '../../lib/geminiApiKey'
 import ConfirmModal from '../../components/common/ConfirmModal'
 import BulkImportModal from '../../components/admin/BulkImportModal'
 import AIExamGeneratorModal from '../../components/admin/AIExamGeneratorModal'
+import AIExamExtractorModal from '../../components/admin/AIExamExtractorModal'
 import AIKeyRequiredModal from '../../components/admin/AIKeyRequiredModal'
 import QuestionForm from '../../components/admin/QuestionForm'
 import QuestionTable from '../../components/admin/QuestionTable'
 import QuestionFilterBar from '../../components/admin/QuestionFilterBar'
 import PaginationBar from '../../components/admin/PaginationBar'
 import useCategories from '../../hooks/useCategories'
+import {
+  clearCategoryStagingItems,
+  fetchCategoryStagingCount
+} from '../../lib/stagingQuestionService'
 
 const ITEMS_PER_PAGE = 10
 
@@ -40,6 +45,10 @@ export default function QuestionManager() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [showBulkModal, setShowBulkModal] = useState(false)
   const [showAIGeneratorModal, setShowAIGeneratorModal] = useState(false)
+  const [showAIExtractorModal, setShowAIExtractorModal] = useState(false)
+  const [extractorInitialTab, setExtractorInitialTab] = useState('extract')
+  const [stagingCount, setStagingCount] = useState(0)
+  const [showClearStagingConfirm, setShowClearStagingConfirm] = useState(false)
   const [showAIKeyRequired, setShowAIKeyRequired] = useState(false)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
@@ -78,7 +87,53 @@ export default function QuestionManager() {
   const handleGoToAISettings = () => {
     setShowAIKeyRequired(false)
     setShowAIGeneratorModal(false)
+    setShowAIExtractorModal(false)
     navigate('/admin/ai-settings')
+  }
+
+  const refreshStagingCount = async (catId, role = userRole) => {
+    if (!catId || role !== 'admin') {
+      setStagingCount(0)
+      return
+    }
+    try {
+      const count = await fetchCategoryStagingCount(catId)
+      setStagingCount(count)
+    } catch (error) {
+      console.error('ไม่สามารถนับข้อสอบ Draft ใน Staging ได้:', error)
+    }
+  }
+
+  const handleOpenAIExtractor = (initialTab = 'extract') => {
+    if (userRole !== 'admin') {
+      return showModal('warning', 'เฉพาะผู้ดูแลระบบ (Admin)', 'ฟีเจอร์สกัดข้อสอบเข้าตาราง Staging จำกัดสิทธิ์เฉพาะผู้ดูแลระบบ (Admin) ตามนโยบายความปลอดภัย RLS ครับ')
+    }
+    if (initialTab === 'extract') {
+      try {
+        if (!getGeminiApiKey()) {
+          setShowAIKeyRequired(true)
+          return
+        }
+      } catch (error) {
+        showModal('warning', 'ไม่สามารถตรวจสอบ API Key ได้', error.message)
+        return
+      }
+    }
+    setExtractorInitialTab(initialTab)
+    setShowAIExtractorModal(true)
+  }
+
+  const handleConfirmClearCategoryDrafts = async () => {
+    if (!selectedCat) return
+    try {
+      await clearCategoryStagingItems(selectedCat, { clearCheckpoints: true })
+      setShowClearStagingConfirm(false)
+      setStagingCount(0)
+      showModal('success', 'ล้าง Draft ทั้งหมดสำเร็จ!', 'ลบข้อสอบ Draft ที่ค้างอยู่ในตาราง Staging และ Checkpoint ของหมวดหมู่นี้เรียบร้อยแล้วครับ')
+    } catch (error) {
+      setShowClearStagingConfirm(false)
+      showModal('danger', 'ล้าง Draft ไม่สำเร็จ', error.message)
+    }
   }
 
   useEffect(() => {
@@ -95,6 +150,7 @@ export default function QuestionManager() {
             setSelectedCat(validCats[0].id)
             setCurrentPage(1)
             fetchQuestions(validCats[0].id, 1, 'asc', role, session.user.id)
+            refreshStagingCount(validCats[0].id, role)
           } else {
             setQuestions([])
             setLoading(false)
@@ -153,6 +209,7 @@ export default function QuestionManager() {
     setIsFormOpen(false)
     setSelectedIds([]) // 🌟 เปลี่ยนวิชา ให้ล้างรายการที่เลือกไว้ทันที
     fetchQuestions(newCatId, 1, sortOrder)
+    refreshStagingCount(newCatId, userRole)
   }
 
   const handleToggleSortOrder = () => {
@@ -359,6 +416,19 @@ export default function QuestionManager() {
         onConfirm={handleConfirmBulkDelete}
       />
 
+      {/* 🌟 หน้าต่างยืนยันการล้าง Draft ทั้งหมดของหมวดหมู่นี้ */}
+      <ConfirmModal
+        isOpen={showClearStagingConfirm}
+        type="danger"
+        theme="dark"
+        title={`ยืนยันล้าง Draft ทั้งหมดของหมวดหมู่นี้ (${stagingCount} ข้อ)?`}
+        description="ข้อสอบ Draft ที่ค้างอยู่ในตาราง Staging และ Checkpoint การอ่านไฟล์ของหมวดหมู่นี้จะถูกลบออกทั้งหมด (ไม่กระทบข้อสอบหลักที่เผยแพร่แล้ว)"
+        confirmText={`🧹 ล้าง Draft ทั้งหมด (${stagingCount} ข้อ)`}
+        cancelText="← ยกเลิก"
+        onClose={() => setShowClearStagingConfirm(false)}
+        onConfirm={handleConfirmClearCategoryDrafts}
+      />
+
       <ConfirmModal
         isOpen={modalConfig.isOpen}
         type={modalConfig.type}
@@ -402,6 +472,28 @@ export default function QuestionManager() {
           setCurrentPage(1)
           setSelectedIds([])
           fetchQuestions(selectedCat, 1, sortOrder)
+        }}
+      />
+
+      <AIExamExtractorModal
+        key={`ai-extractor-${selectedCat || 'empty'}-${extractorInitialTab}-${showAIExtractorModal ? 'open' : 'closed'}`}
+        isOpen={showAIExtractorModal}
+        onClose={() => {
+          setShowAIExtractorModal(false)
+          refreshStagingCount(selectedCat, userRole)
+        }}
+        categories={categories}
+        categoryId={selectedCat}
+        currentUserId={currentUserId}
+        initialTab={extractorInitialTab}
+        onNotify={showModal}
+        onGoToSettings={handleGoToAISettings}
+        onStagingCountChange={setStagingCount}
+        onSuccess={() => {
+          setCurrentPage(1)
+          setSelectedIds([])
+          fetchQuestions(selectedCat, 1, sortOrder)
+          refreshStagingCount(selectedCat, userRole)
         }}
       />
 
@@ -473,8 +565,74 @@ export default function QuestionManager() {
           <button onClick={handleOpenAIGenerator} disabled={categories.length === 0} className="flex-1 px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/20 disabled:opacity-30 border border-emerald-500/30 text-emerald-400 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0">
             <span>✨ AI จากเอกสาร</span>
           </button>
+          <button onClick={() => handleOpenAIExtractor('extract')} disabled={categories.length === 0} className="flex-1 px-4 py-3 bg-sky-500/10 hover:bg-sky-500/20 disabled:opacity-30 border border-sky-500/30 text-sky-300 rounded-2xl text-sm font-bold transition-all cursor-pointer flex items-center justify-center gap-2 shrink-0">
+            <span>📄 AI ดึงข้อสอบจากไฟล์</span>
+          </button>
         </QuestionFilterBar>
       </div>
+
+      {userRole === 'admin' && selectedCat && (
+        <div className={`rounded-3xl border p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 transition-colors ${
+          stagingCount > 0
+            ? 'bg-amber-500/10 border-amber-500/35 shadow-lg shadow-amber-500/5'
+            : 'bg-slate-900/70 border-slate-800'
+        }`}>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg border shrink-0 ${
+              stagingCount > 0
+                ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                : 'bg-slate-800 text-slate-400 border-slate-700'
+            }`}>
+              📝
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-sm font-black text-white">
+                  ข้อสอบ Draft ใน Staging (รอตรวจสอบก่อนเผยแพร่)
+                </h3>
+                <span className={`rounded-full px-2.5 py-0.5 text-xs font-mono font-black ${
+                  stagingCount > 0
+                    ? 'bg-amber-500 text-slate-950'
+                    : 'bg-slate-800 text-slate-400'
+                }`}>
+                  {stagingCount} ข้อ
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {stagingCount > 0
+                  ? 'ข้อสอบเหล่านี้ถูกแยกเก็บในตาราง Staging ยังไม่แสดงฝั่งผู้สอบ กดเปิดตรวจ แก้ไข หรือเผยแพร่ต่อได้ทุกเมื่อ'
+                  : 'ยังไม่มีข้อสอบ Draft ค้างอยู่ในหมวดหมู่นี้'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => handleOpenAIExtractor('staging')}
+              className={`px-4 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer flex items-center gap-2 ${
+                stagingCount > 0
+                  ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow'
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+              }`}
+            >
+              <span>👀</span>
+              <span>{stagingCount > 0 ? `เปิดตรวจ / เผยแพร่ Draft (${stagingCount})` : 'เปิดดู Staging Draft'}</span>
+            </button>
+
+            {stagingCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowClearStagingConfirm(true)}
+                className="px-4 py-2.5 rounded-2xl text-xs font-bold bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <span>🧹</span>
+                <span>ล้าง Draft ทั้งหมดของหมวดหมู่นี้</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {categories.length === 0 ? (
         <div className="bg-slate-900 border border-slate-800 rounded-3xl p-8 sm:p-12 text-center max-w-2xl mx-auto my-8 space-y-4">
