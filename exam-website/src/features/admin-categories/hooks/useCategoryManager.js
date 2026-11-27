@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   batchUpdateCategoryStatus,
   deleteCategoriesWithImages,
@@ -8,6 +8,12 @@ import {
   saveCategory,
   updateCategoryActiveStatus
 } from '../services/categoryService'
+
+function matchesStatusFilter(category, filter) {
+  if (filter === 'active') return Boolean(category.is_active)
+  if (filter === 'inactive') return !category.is_active
+  return true
+}
 
 export default function useCategoryManager() {
   const [categories, setCategories] = useState([])
@@ -27,6 +33,7 @@ export default function useCategoryManager() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   const [sortOrder, setSortOrder] = useState('asc')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [selectedItems, setSelectedItems] = useState([])
 
   const [modalConfig, setModalConfig] = useState({
@@ -68,14 +75,43 @@ export default function useCategoryManager() {
     }
   }
 
-  const sortedCategories = [...categories].sort((a, b) => {
-    const dateA = new Date(a.created_at || 0).getTime()
-    const dateB = new Date(b.created_at || 0).getTime()
-    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
-  })
+  const statusCounts = useMemo(() => {
+    let active = 0
+    let inactive = 0
+    for (const cat of categories) {
+      if (cat.is_active) active += 1
+      else inactive += 1
+    }
+    return {
+      all: categories.length,
+      active,
+      inactive
+    }
+  }, [categories])
 
-  const totalPages = Math.ceil(sortedCategories.length / itemsPerPage) || 1
-  const paginatedCategories = sortedCategories.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+  const filteredCategories = useMemo(() => {
+    return categories
+      .filter((cat) => matchesStatusFilter(cat, statusFilter))
+      .sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime()
+        const dateB = new Date(b.created_at || 0).getTime()
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+      })
+  }, [categories, statusFilter, sortOrder])
+
+  const totalPages = Math.max(1, Math.ceil(filteredCategories.length / itemsPerPage))
+  const safeCurrentPage = Math.min(currentPage, totalPages)
+  const paginatedCategories = filteredCategories.slice(
+    (safeCurrentPage - 1) * itemsPerPage,
+    safeCurrentPage * itemsPerPage
+  )
+
+  const handleStatusFilterChange = (nextFilter) => {
+    if (nextFilter === statusFilter) return
+    setStatusFilter(nextFilter)
+    setCurrentPage(1)
+    setSelectedItems([])
+  }
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
@@ -127,7 +163,11 @@ export default function useCategoryManager() {
     setSaving(true)
     try {
       await saveCategory({ editingCat, name, description, currentUserId })
-      showModal('success', editingCat ? 'บันทึกสำเร็จ' : 'สร้างหมวดหมู่สำเร็จ', editingCat ? 'แก้ไขหมวดหมู่วิชาเรียบร้อยแล้ว' : 'เพิ่มหมวดหมู่วิชาใหม่ลงในระบบเรียบร้อยแล้ว')
+      showModal(
+        'success',
+        editingCat ? 'บันทึกสำเร็จ' : 'สร้างหมวดหมู่สำเร็จ',
+        editingCat ? 'แก้ไขหมวดหมู่วิชาเรียบร้อยแล้ว' : 'เพิ่มหมวดหมู่วิชาใหม่ลงในระบบเรียบร้อยแล้ว'
+      )
       handleCloseForm()
       fetchCategories()
     } catch (err) {
@@ -138,19 +178,54 @@ export default function useCategoryManager() {
   }
 
   async function handleToggleStatus(cat) {
+    const nextIsActive = !cat.is_active
     try {
-      await updateCategoryActiveStatus(cat.id, !cat.is_active)
-      setCategories((prev) => prev.map((item) => (item.id === cat.id ? { ...item, is_active: !item.is_active } : item)))
+      await updateCategoryActiveStatus(cat.id, nextIsActive)
+      const nextCategories = categories.map((item) =>
+        item.id === cat.id ? { ...item, is_active: nextIsActive } : item
+      )
+      setCategories(nextCategories)
+
+      const remainsVisible = matchesStatusFilter({ ...cat, is_active: nextIsActive }, statusFilter)
+      if (!remainsVisible) {
+        setSelectedItems((prev) => prev.filter((id) => id !== cat.id))
+        const nextFilteredCount = nextCategories.filter((item) => matchesStatusFilter(item, statusFilter)).length
+        const nextTotalPages = Math.max(1, Math.ceil(nextFilteredCount / itemsPerPage))
+        if (safeCurrentPage > nextTotalPages) {
+          setCurrentPage(nextTotalPages)
+        }
+      }
     } catch (err) {
       showModal('danger', 'เกิดข้อผิดพลาด', 'อัปเดตสถานะไม่สำเร็จ: ' + err.message)
     }
   }
 
   async function handleBatchToggleStatus(isActive) {
+    if (selectedItems.length === 0) return
     try {
       await batchUpdateCategoryStatus(selectedItems, isActive)
-      setCategories((prev) => prev.map((item) => (selectedItems.includes(item.id) ? { ...item, is_active: isActive } : item)))
-      showModal('success', 'อัปเดตสำเร็จ', `ปรับสถานะเป็น "${isActive ? 'เปิดใช้งาน' : 'ซ่อนฉบับร่าง'}" จำนวน ${selectedItems.length} รายการเรียบร้อยแล้ว`)
+      const updatedCount = selectedItems.length
+      const nextCategories = categories.map((item) =>
+        selectedItems.includes(item.id) ? { ...item, is_active: isActive } : item
+      )
+      setCategories(nextCategories)
+
+      const willLeaveCurrentFilter =
+        (statusFilter === 'active' && !isActive) || (statusFilter === 'inactive' && isActive)
+      if (willLeaveCurrentFilter) {
+        setSelectedItems([])
+        const nextFilteredCount = nextCategories.filter((item) => matchesStatusFilter(item, statusFilter)).length
+        const nextTotalPages = Math.max(1, Math.ceil(nextFilteredCount / itemsPerPage))
+        if (safeCurrentPage > nextTotalPages) {
+          setCurrentPage(nextTotalPages)
+        }
+      }
+
+      showModal(
+        'success',
+        'อัปเดตสำเร็จ',
+        `ปรับสถานะเป็น "${isActive ? 'เปิดใช้งาน' : 'ซ่อนฉบับร่าง'}" จำนวน ${updatedCount} รายการเรียบร้อยแล้ว`
+      )
     } catch (err) {
       showModal('danger', 'เกิดข้อผิดพลาด', err.message)
     }
@@ -160,16 +235,23 @@ export default function useCategoryManager() {
     if (!deleteTarget || deleteTarget.length === 0) return
     try {
       await deleteCategoriesWithImages(deleteTarget)
-      setCategories((prev) => prev.filter((item) => !deleteTarget.includes(item.id)))
+      const nextCategories = categories.filter((item) => !deleteTarget.includes(item.id))
+      setCategories(nextCategories)
       setSelectedItems((prev) => prev.filter((id) => !deleteTarget.includes(id)))
       if (editingCat && deleteTarget.includes(editingCat.id)) handleCloseForm()
 
       const deletedCount = deleteTarget.length
       setDeleteTarget(null)
-      showModal('success', 'ลบหมวดหมู่สำเร็จ', `ลบหมวดหมู่วิชาจำนวน ${deletedCount} หมวด ข้อสอบ และไฟล์รูปภาพทั้งหมดภายในออกเรียบร้อยแล้ว`)
+      showModal(
+        'success',
+        'ลบหมวดหมู่สำเร็จ',
+        `ลบหมวดหมู่วิชาจำนวน ${deletedCount} หมวด ข้อสอบ และไฟล์รูปภาพทั้งหมดภายในออกเรียบร้อยแล้ว`
+      )
 
-      if (paginatedCategories.length === deletedCount && currentPage > 1) {
-        setCurrentPage((prev) => prev - 1)
+      const nextFilteredCount = nextCategories.filter((item) => matchesStatusFilter(item, statusFilter)).length
+      const nextTotalPages = Math.max(1, Math.ceil(nextFilteredCount / itemsPerPage))
+      if (safeCurrentPage > nextTotalPages) {
+        setCurrentPage(nextTotalPages)
       }
     } catch (err) {
       showModal('danger', 'ลบไม่สำเร็จ', err.message)
@@ -178,6 +260,7 @@ export default function useCategoryManager() {
 
   return {
     categories,
+    filteredCategories,
     paginatedCategories,
     loading,
     name,
@@ -193,11 +276,14 @@ export default function useCategoryManager() {
     setDeleteTarget,
     shareTargetCat,
     setShareTargetCat,
-    currentPage,
+    currentPage: safeCurrentPage,
     setCurrentPage,
     totalPages,
     sortOrder,
     toggleSortOrder,
+    statusFilter,
+    statusCounts,
+    handleStatusFilterChange,
     selectedItems,
     setSelectedItems,
     isAllCurrentPageSelected,
