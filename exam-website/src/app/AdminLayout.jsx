@@ -53,15 +53,13 @@ export default function AdminLayout({ userRole }) {
 
       <Navbar onLogoutClick={handleTriggerLogout} />
 
-      <header className="bg-white dark:bg-[#181818] border-b border-zinc-200 dark:border-[#272727]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
-          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+      <main id="admin-main-content" className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 sm:pt-7">
+        <header className={`mb-5 ${activeTab === 'ai-settings' ? 'max-w-3xl mx-auto' : ''}`}>
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
             {TAB_TITLES[activeTab]}
           </h1>
-        </div>
-      </header>
+        </header>
 
-      <main id="admin-main-content" className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
         {activeTab === 'categories' && <CategoryManagerPage />}
         {activeTab === 'questions' && <QuestionManagerPage />}
         {activeTab === 'users' && isFullAdmin && <UserManagerPage />}

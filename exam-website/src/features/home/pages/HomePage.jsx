@@ -55,8 +55,8 @@ export default function HomePage() {
     <div className="min-h-dvh bg-[#f8f8f9] dark:bg-[#000000] text-zinc-900 dark:text-zinc-100 font-sans pb-24 transition-colors duration-300">
       <Navbar />
 
-      <header className="bg-white dark:bg-[#181818] border-b border-zinc-200 dark:border-[#272727] py-6 sm:py-8 px-4 sm:px-6 transition-colors duration-300">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-6 sm:pt-7 space-y-5">
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200/70 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <LibraryIcon className="w-5 h-5" />
@@ -72,7 +72,7 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
-            <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400 bg-zinc-50 dark:bg-[#1F1F1F] px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-[#272727] flex items-center gap-1.5">
+            <div className="text-xs font-medium text-zinc-600 dark:text-zinc-400 bg-white dark:bg-[#181818] px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-[#272727] flex items-center gap-1.5">
               <span>เปิดใช้งาน</span>
               <strong className="text-indigo-600 dark:text-indigo-400 font-mono tabular-nums text-sm font-semibold">
                 {categories.length.toLocaleString()}
@@ -80,10 +80,8 @@ export default function HomePage() {
               <span>หมวดวิชา</span>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 space-y-6">
         {categories.length > 0 && (
           <HomeSearchFilter
             categories={categories}

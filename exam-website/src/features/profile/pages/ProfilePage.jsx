@@ -51,8 +51,8 @@ export default function ProfilePage() {
 
       <Navbar showNavPills={true} />
 
-      <header className="bg-white dark:bg-[#181818] border-b border-zinc-200 dark:border-[#272727] py-6 sm:py-8 px-4 sm:px-6 transition-colors duration-300">
-        <div className="max-w-3xl mx-auto flex items-center gap-3.5 min-w-0">
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 pt-6 sm:pt-7 space-y-5 sm:space-y-6 min-w-0">
+        <header className="flex items-center gap-3.5 min-w-0">
           <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200/70 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
             <UserIcon className="w-5 h-5" />
           </div>
@@ -64,10 +64,8 @@ export default function ProfilePage() {
               จัดการชื่อแสดงผลและรหัสผ่านสำหรับเข้าใช้งานระบบ
             </p>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 space-y-6 min-w-0">
         {loading ? (
           <LoadingScreen text="กำลังโหลดข้อมูลโปรไฟล์..." />
         ) : (

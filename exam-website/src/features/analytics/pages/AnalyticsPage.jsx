@@ -25,25 +25,21 @@ export default function AnalyticsPage() {
     <div className="min-h-dvh bg-[#f8f8f9] dark:bg-[#000000] font-sans text-zinc-900 dark:text-zinc-100 pb-24 overflow-x-hidden transition-colors duration-300">
       <Navbar showNavPills={true} />
 
-      <header className="bg-white dark:bg-[#181818] border-b border-zinc-200 dark:border-[#272727] py-6 sm:py-8 px-4 sm:px-6 transition-colors duration-300">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5 min-w-0">
-            <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200/70 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-              <ChartBarIcon className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight truncate">
-                สถิติและวิเคราะห์ผลการสอบ
-              </h1>
-              <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
-                ติดตามความคืบหน้า ความแม่นยำรายวิชา และประวัติการทำข้อสอบล่าสุดของคุณ
-              </p>
-            </div>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 sm:pt-7 space-y-6 sm:space-y-8 min-w-0">
+        <header className="flex items-center gap-3.5 min-w-0">
+          <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200/70 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <ChartBarIcon className="w-5 h-5" />
           </div>
-        </div>
-      </header>
+          <div className="min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight truncate">
+              สถิติและวิเคราะห์ผลการสอบ
+            </h1>
+            <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5 truncate">
+              ติดตามความคืบหน้า ความแม่นยำรายวิชา และประวัติการทำข้อสอบล่าสุดของคุณ
+            </p>
+          </div>
+        </header>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 space-y-8 sm:space-y-10 min-w-0">
         {loading ? (
           <LoadingScreen text="กำลังคำนวณสถิติและวิเคราะห์ข้อมูลการสอบของคุณ..." />
         ) : error ? (
