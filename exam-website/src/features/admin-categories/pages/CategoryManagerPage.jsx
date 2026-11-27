@@ -14,8 +14,25 @@ import {
 import ShareCategoryModal from '../components/ShareCategoryModal'
 import useCategoryManager from '../hooks/useCategoryManager'
 
+const STATUS_FILTER_OPTIONS = [
+  { key: 'all', label: 'ทั้งหมด' },
+  { key: 'active', label: 'เปิดใช้งาน' },
+  { key: 'inactive', label: 'ปิดใช้งาน' }
+]
+
 export default function CategoryManagerPage() {
   const cm = useCategoryManager()
+
+  const emptyFilterCopy =
+    cm.statusFilter === 'active'
+      ? {
+          title: 'ไม่มีหมวดหมู่ที่เปิดใช้งานอยู่ในขณะนี้',
+          description: 'หมวดหมู่ทั้งหมดถูกปิดใช้งานอยู่ คุณสามารถกดดูทั้งหมดเพื่อเปิดใช้งานได้'
+        }
+      : {
+          title: 'ไม่มีหมวดหมู่ที่ปิดใช้งานอยู่ในขณะนี้',
+          description: 'หมวดหมู่วิชาทั้งหมดในระบบกำลังเปิดใช้งานอยู่'
+        }
 
   return (
     <div className="space-y-5 relative pb-24">
@@ -108,10 +125,10 @@ export default function CategoryManagerPage() {
         </form>
       </AdminModalShell>
 
-      <div className="bg-white dark:bg-[#181818] p-4 rounded-2xl border border-zinc-200 dark:border-[#272727] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          {cm.categories.length > 0 && (
-            <label className="inline-flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-[#1F1F1F] px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-[#272727] hover:border-zinc-300 dark:hover:border-[#313131] transition-colors duration-300">
+      <div className="bg-white dark:bg-[#181818] p-4 rounded-2xl border border-zinc-200 dark:border-[#272727] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-2.5 min-w-0">
+          {cm.filteredCategories.length > 0 && (
+            <label className="inline-flex items-center gap-2 cursor-pointer bg-zinc-50 dark:bg-[#1F1F1F] px-3 py-1.5 rounded-xl border border-zinc-200 dark:border-[#272727] hover:border-zinc-300 dark:hover:border-[#313131] transition-colors duration-300 shrink-0">
               <input
                 type="checkbox"
                 checked={cm.isAllCurrentPageSelected}
@@ -123,18 +140,49 @@ export default function CategoryManagerPage() {
               </span>
             </label>
           )}
-          <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 tabular-nums">
-            ทั้งหมด {cm.categories.length.toLocaleString('th-TH')} หมวด
-          </span>
-          {cm.categories.length > 0 && (
-            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-[#1F1F1F] px-2 py-0.5 rounded-md tabular-nums">
+
+          <div
+            role="group"
+            aria-label="กรองตามสถานะการแสดงผล"
+            className="inline-flex items-center p-1 rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-100 dark:bg-[#1F1F1F] overflow-x-auto max-w-full"
+          >
+            {STATUS_FILTER_OPTIONS.map((option) => {
+              const isActive = cm.statusFilter === option.key
+              const count = cm.statusCounts[option.key] ?? 0
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  aria-pressed={isActive}
+                  onClick={() => cm.handleStatusFilterChange(option.key)}
+                  className={`h-8 px-3 rounded-lg text-xs font-semibold transition-all duration-300 ease-premium cursor-pointer shrink-0 inline-flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-white dark:bg-[#272727] text-zinc-900 dark:text-zinc-100 shadow-xs'
+                      : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  <span
+                    className={`font-mono tabular-nums ${
+                      isActive ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 dark:text-zinc-500'
+                    }`}
+                  >
+                    ({count.toLocaleString('th-TH')})
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {cm.filteredCategories.length > 0 && (
+            <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-[#1F1F1F] px-2.5 py-1 rounded-md tabular-nums shrink-0">
               หน้า {cm.currentPage}/{cm.totalPages}
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 justify-end">
-          {cm.categories.length > 1 && (
+        <div className="flex items-center gap-2 justify-end shrink-0">
+          {cm.filteredCategories.length > 1 && (
             <button
               type="button"
               onClick={cm.toggleSortOrder}
@@ -165,6 +213,14 @@ export default function CategoryManagerPage() {
             description="สร้างหมวดหมู่วิชาแรกเพื่อเริ่มต้นจัดเก็บข้อสอบในคลัง"
             actionText="เพิ่มหมวดหมู่วิชาใหม่"
             onAction={cm.handleOpenCreateForm}
+          />
+        ) : cm.filteredCategories.length === 0 ? (
+          <EmptyState
+            icon={<FolderIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
+            title={emptyFilterCopy.title}
+            description={emptyFilterCopy.description}
+            actionText="แสดงทั้งหมด"
+            onAction={() => cm.handleStatusFilterChange('all')}
           />
         ) : (
           cm.paginatedCategories.map((cat) => {
