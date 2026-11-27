@@ -8,7 +8,7 @@ export default function ExtractorStepperBar({ isExtracting, progress, stats, act
   if (!isExtracting && !progress) return null
 
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/90 p-4 space-y-3">
+    <div className="rounded-2xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 dark:bg-[#1F1F1F] p-4 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
         {PIPELINE_STEPS.map((step) => {
           const isCompleted = progress?.status === 'completed' || activePass > step.pass
@@ -17,27 +17,27 @@ export default function ExtractorStepperBar({ isExtracting, progress, stats, act
           return (
             <div
               key={step.pass}
-              className={`rounded-xl border px-3 py-2 flex items-center gap-2.5 transition-colors ${
+              className={`rounded-xl border px-3 py-2 flex items-center gap-2.5 transition-colors duration-300 ${
                 isCompleted
                   ? 'border-emerald-200 dark:border-emerald-500/35 bg-emerald-50/80 dark:bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
                   : isCurrent
-                    ? 'border-indigo-300 dark:border-indigo-500/50 bg-indigo-50/80 dark:bg-indigo-500/15 text-indigo-950 dark:text-white'
-                    : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 text-slate-400 dark:text-slate-500'
+                    ? 'border-indigo-300 dark:border-indigo-500/50 bg-indigo-50/80 dark:bg-indigo-500/15 text-indigo-950 dark:text-zinc-100'
+                    : 'border-zinc-200 dark:border-[#272727] bg-white dark:bg-[#181818] text-zinc-400 dark:text-zinc-500'
               }`}
             >
               <span
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ${
+                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold tabular-nums ${
                   isCompleted
                     ? 'bg-emerald-600 text-white'
                     : isCurrent
                       ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                      : 'bg-zinc-200 dark:bg-[#272727] text-zinc-500 dark:text-zinc-400'
                 }`}
               >
                 {isCompleted ? '✓' : step.pass}
               </span>
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold opacity-75">
+                <p className="text-xs font-medium opacity-75">
                   {step.label}
                   {isCurrent && step.pass === 3 && progress?.pass3Stage ? ` · Stage ${progress.pass3Stage}` : ''}
                 </p>
@@ -52,21 +52,21 @@ export default function ExtractorStepperBar({ isExtracting, progress, stats, act
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
           <div className="flex items-center gap-2 min-w-0">
             {isExtracting && (
-              <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent shrink-0" />
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
             )}
-            <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+            <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
               {progress?.statusMessage || 'กำลังเตรียมประมวลผล...'}
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2 shrink-0">
             {progress?.activeModelLabel && (
-              <span className="rounded-md border border-indigo-200 dark:border-indigo-500/35 bg-indigo-50 dark:bg-indigo-500/15 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 dark:text-indigo-200">
+              <span className="rounded-md border border-indigo-200 dark:border-indigo-500/35 bg-indigo-50 dark:bg-indigo-500/15 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:text-indigo-200">
                 {progress.activeModelLabel}
               </span>
             )}
             {progress?.adaptiveDelayMs > 0 && isExtracting && (
-              <span className="rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-0.5 text-[11px] tabular-nums text-slate-500 dark:text-slate-400">
-                RPM: {(progress.adaptiveDelayMs / 1000).toFixed(1)}s/req
+              <span className="rounded-md border border-zinc-200 dark:border-[#313131] bg-white dark:bg-[#181818] px-2 py-0.5 text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
+                RPM {(progress.adaptiveDelayMs / 1000).toFixed(1)}s
               </span>
             )}
             <span className="font-bold tabular-nums text-indigo-700 dark:text-indigo-300">{progressPercent}%</span>
@@ -78,10 +78,10 @@ export default function ExtractorStepperBar({ isExtracting, progress, stats, act
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={progressPercent}
-          className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
+          className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-[#272727]"
         >
           <div
-            className={`h-full rounded-full transition-all duration-300 ${
+            className={`h-full rounded-full transition-all duration-500 ease-premium ${
               progress?.status === 'error'
                 ? 'bg-rose-500'
                 : progress?.status === 'paused'

@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { clearGeminiApiKey, getGeminiApiKey, saveGeminiApiKey } from '../../../../shared/lib/geminiApiKey'
-import { DEFAULT_GEMINI_MODEL, GEMINI_MODELS, getGeminiModel, saveGeminiModel } from '../../../../shared/lib/geminiModels'
+import {
+  DEFAULT_GEMINI_MODEL,
+  GEMINI_MODELS,
+  getGeminiModel,
+  saveGeminiModel
+} from '../../../../shared/lib/geminiModels'
 import { EyeIcon, EyeOffIcon, KeyIcon } from '../../../../shared/components/AdminIcons'
 
 function maskApiKey(apiKey) {
@@ -70,37 +75,52 @@ export default function AISettingsPage() {
 
   return (
     <section className="mx-auto max-w-3xl space-y-5">
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-6 shadow-xs space-y-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="rounded-2xl border border-zinc-200 dark:border-[#272727] bg-white dark:bg-[#181818] p-5 sm:p-6 space-y-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-zinc-200 dark:border-[#272727]">
           <div className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-indigo-200/80 dark:border-indigo-500/25 bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-100 dark:bg-[#1F1F1F] text-indigo-600 dark:text-indigo-400">
               <KeyIcon className="w-5 h-5" />
             </span>
-            <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Gemini API Key และโมเดลหลัก</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                ใช้สำหรับฟีเจอร์สร้างข้อสอบ ดึงข้อสอบจากไฟล์ และตรวจทานเฉลย
-              </p>
-            </div>
+            <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">Gemini API Key และโมเดลหลัก</h2>
           </div>
 
-          <span className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${savedKey ? 'border-emerald-200 dark:border-emerald-500/25 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300' : 'border-amber-200 dark:border-amber-500/25 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300'}`}>
+          <span
+            className={`inline-flex w-fit items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold ${
+              savedKey
+                ? 'border-emerald-200 dark:border-emerald-500/25 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                : 'border-amber-200 dark:border-amber-500/25 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300'
+            }`}
+          >
             <span className={`w-1.5 h-1.5 rounded-full ${savedKey ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-            {savedKey ? 'ตั้งค่า API Key แล้ว' : 'ยังไม่ได้ตั้งค่า API Key'}
+            {savedKey ? 'ตั้งค่าคีย์แล้ว' : 'ยังไม่ได้ตั้งค่าคีย์'}
           </span>
         </div>
 
         {savedKey && !isEditing && (
-          <div className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/70 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 dark:bg-[#1F1F1F] p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">คีย์ที่บันทึกไว้ในเบราว์เซอร์นี้</p>
-              <p className="mt-1 font-mono text-sm font-semibold text-emerald-700 dark:text-emerald-400">{maskApiKey(savedKey)}</p>
+              <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">คีย์ที่บันทึกไว้ในเบราว์เซอร์นี้</p>
+              <p className="mt-1 font-mono text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                {maskApiKey(savedKey)}
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => { setError(''); setNotice(''); setIsEditing(true) }} className="h-9 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/15 dark:hover:bg-indigo-500/25 px-3.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition-colors cursor-pointer">
+              <button
+                type="button"
+                onClick={() => {
+                  setError('')
+                  setNotice('')
+                  setIsEditing(true)
+                }}
+                className="h-9 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-500/15 dark:hover:bg-indigo-500/25 px-3.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
+              >
                 เปลี่ยนคีย์
               </button>
-              <button type="button" onClick={handleClear} className="h-9 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 px-3.5 text-xs font-semibold text-rose-700 dark:text-rose-300 transition-colors cursor-pointer">
+              <button
+                type="button"
+                onClick={handleClear}
+                className="h-9 rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/10 dark:hover:bg-rose-500/20 px-3.5 text-xs font-semibold text-rose-700 dark:text-rose-300 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
+              >
                 ลบคีย์
               </button>
             </div>
@@ -109,7 +129,7 @@ export default function AISettingsPage() {
 
         {isEditing && (
           <form onSubmit={handleSave} className="space-y-3">
-            <label htmlFor="gemini-api-key" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <label htmlFor="gemini-api-key" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
               {savedKey ? 'Gemini API Key ใหม่' : 'Gemini API Key'}
             </label>
             <div className="flex gap-2">
@@ -120,51 +140,94 @@ export default function AISettingsPage() {
                 value={draftKey}
                 onChange={(event) => setDraftKey(event.target.value)}
                 placeholder="วาง API Key ของคุณที่นี่ (AIza...)"
-                className="min-w-0 flex-1 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 text-sm font-mono text-slate-900 dark:text-white outline-none transition-colors placeholder:font-sans placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:ring-2 focus:ring-indigo-500"
+                className="min-w-0 flex-1 h-10 rounded-xl border border-zinc-200 dark:border-[#313131] bg-zinc-50 dark:bg-[#1F1F1F] px-3.5 text-sm font-mono text-zinc-900 dark:text-zinc-100 outline-none transition-colors duration-300 placeholder:font-sans placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:ring-2 focus:ring-indigo-500"
               />
               <button
                 type="button"
                 aria-label={showKey ? 'ซ่อน API Key' : 'แสดง API Key'}
                 onClick={() => setShowKey((visible) => !visible)}
-                className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+                className="w-10 h-10 rounded-xl border border-zinc-200 dark:border-[#313131] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1F1F1F] dark:hover:bg-[#272727] text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors duration-300 cursor-pointer shrink-0"
               >
                 {showKey ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
               </button>
             </div>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end pt-1">
               {savedKey && (
-                <button type="button" onClick={() => { setDraftKey(''); setIsEditing(false); setError('') }} className="h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-4 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraftKey('')
+                    setIsEditing(false)
+                    setError('')
+                  }}
+                  className="h-9 rounded-xl border border-zinc-200 dark:border-[#313131] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1F1F1F] dark:hover:bg-[#272727] px-4 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
+                >
                   ยกเลิก
                 </button>
               )}
-              <button type="submit" disabled={!draftKey.trim()} className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 text-xs font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer">
+              <button
+                type="submit"
+                disabled={!draftKey.trim()}
+                className="h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 px-4 text-xs font-semibold text-white transition-all duration-300 ease-premium active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+              >
                 บันทึก API Key
               </button>
             </div>
           </form>
         )}
 
-        <div className="space-y-2 pt-4 border-t border-slate-200 dark:border-slate-800">
-          <label htmlFor="gemini-model" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">โมเดล Gemini เริ่มต้น</label>
-          <select id="gemini-model" value={selectedModel} onChange={handleModelChange} className="w-full h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3.5 text-sm text-slate-900 dark:text-white outline-none transition-colors focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+        <div className="space-y-2 pt-5 border-t border-zinc-200 dark:border-[#272727]">
+          <label htmlFor="gemini-model" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            โมเดล Gemini เริ่มต้น
+          </label>
+          <select
+            id="gemini-model"
+            value={selectedModel}
+            onChange={handleModelChange}
+            className="w-full h-10 rounded-xl border border-zinc-200 dark:border-[#313131] bg-zinc-50 dark:bg-[#1F1F1F] px-3.5 text-sm text-zinc-900 dark:text-zinc-100 outline-none transition-colors duration-300 focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+          >
             {GEMINI_MODELS.map((model) => (
-              <option key={model.value} value={model.value}>{model.label} — {model.description}</option>
+              <option key={model.value} value={model.value}>
+                {model.label} ({model.description})
+              </option>
             ))}
           </select>
-          <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+          <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
             ใช้ API Key เดียวกันได้ทุกโมเดล หากโมเดลใดติด Rate Limit สามารถสลับมาใช้โมเดลอื่นได้ทันที
           </p>
         </div>
 
-        {error && <p role="alert" className="rounded-xl border border-rose-200 dark:border-rose-500/25 bg-rose-50 dark:bg-rose-500/10 p-3 text-xs font-medium text-rose-700 dark:text-rose-300">{error}</p>}
-        {notice && <p role="status" className="rounded-xl border border-emerald-200 dark:border-emerald-500/25 bg-emerald-50 dark:bg-emerald-500/10 p-3 text-xs font-medium text-emerald-800 dark:text-emerald-300">{notice}</p>}
-
-        <div className="space-y-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 p-4 text-xs leading-relaxed text-slate-600 dark:text-slate-400">
-          <p>
-            API Key จะถูกบันทึกไว้ใน <code className="font-mono text-slate-800 dark:text-slate-200">localStorage</code> ของเบราว์เซอร์นี้เท่านั้น ไม่ส่งไปเก็บในฐานข้อมูล และส่งตรงไปยัง Google Gemini API เมื่อใช้งาน
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl border border-rose-200 dark:border-rose-500/25 bg-rose-50 dark:bg-rose-500/10 p-3 text-xs font-medium text-rose-700 dark:text-rose-300"
+          >
+            {error}
           </p>
-          <p className="text-amber-800 dark:text-amber-300/90">แนะนำให้ใช้งานบนอุปกรณ์ส่วนตัวและจำกัดสิทธิ์คีย์ให้ใช้เฉพาะ Gemini API</p>
-          <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex font-semibold text-indigo-600 dark:text-indigo-400 underline underline-offset-4 transition-colors hover:text-indigo-700 dark:hover:text-indigo-300">
+        )}
+        {notice && (
+          <p
+            role="status"
+            className="rounded-xl border border-emerald-200 dark:border-emerald-500/25 bg-emerald-50 dark:bg-emerald-500/10 p-3 text-xs font-medium text-emerald-800 dark:text-emerald-300"
+          >
+            {notice}
+          </p>
+        )}
+
+        <div className="space-y-2.5 rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 dark:bg-[#1F1F1F] p-4 text-xs leading-relaxed text-zinc-600 dark:text-zinc-400">
+          <p>
+            API Key จะถูกบันทึกไว้ใน <code className="font-mono text-zinc-800 dark:text-zinc-200">localStorage</code>{' '}
+            ของเบราว์เซอร์นี้เท่านั้น ไม่ส่งไปเก็บในฐานข้อมูล และส่งตรงไปยัง Google Gemini API เมื่อใช้งาน
+          </p>
+          <p className="text-amber-800 dark:text-amber-300/90">
+            แนะนำให้ใช้งานบนอุปกรณ์ส่วนตัวและจำกัดสิทธิ์คีย์ให้ใช้เฉพาะ Gemini API
+          </p>
+          <a
+            href="https://aistudio.google.com/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex font-semibold text-indigo-600 dark:text-indigo-400 underline underline-offset-4 transition-colors duration-300 hover:text-indigo-700 dark:hover:text-indigo-300"
+          >
             รับ API Key ฟรีได้ที่ Google AI Studio ↗
           </a>
         </div>

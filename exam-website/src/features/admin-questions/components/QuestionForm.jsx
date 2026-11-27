@@ -65,7 +65,7 @@ export default function QuestionForm({
 
   const removeOption = (indexToRemove) => {
     if (options.length <= 2) {
-      return showModal('warning', 'ลบไม่ได้', 'ข้อสอบต้องมีตัวเลือกคำตอบอย่างน้อย 2 ข้อครับ')
+      return showModal('warning', 'ลบไม่ได้', 'ข้อสอบต้องมีตัวเลือกคำตอบอย่างน้อย 2 ข้อ')
     }
     const newOptions = options.filter((_, idx) => idx !== indexToRemove)
     setOptions(newOptions)
@@ -75,10 +75,10 @@ export default function QuestionForm({
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!selectedCat) return showModal('warning', 'ยังไม่ได้เลือกวิชา', 'กรุณาเลือกหมวดหมู่วิชาก่อนบันทึกครับ')
-    if (!questionText.trim()) return showModal('warning', 'ข้อมูลไม่ครบ', 'กรุณากรอกโจทย์คำถามก่อนบันทึกครับ')
+    if (!selectedCat) return showModal('warning', 'ยังไม่ได้เลือกวิชา', 'กรุณาเลือกหมวดหมู่วิชาก่อนบันทึก')
+    if (!questionText.trim()) return showModal('warning', 'ข้อมูลไม่ครบ', 'กรุณากรอกโจทย์คำถามก่อนบันทึก')
     if (options.some((opt) => !opt.trim())) {
-      return showModal('warning', 'ข้อมูลไม่ครบ', 'กรุณากรอกตัวเลือกคำตอบให้ครบถ้วนทุกข้อครับ')
+      return showModal('warning', 'ข้อมูลไม่ครบ', 'กรุณากรอกตัวเลือกคำตอบให้ครบถ้วนทุกข้อ')
     }
 
     setSaving(true)
@@ -109,16 +109,19 @@ export default function QuestionForm({
 
       onSaveSuccess()
     } catch (err) {
-      showModal('danger', 'เกิดข้อผิดพลาดในการบันทึก', err.message)
+      showModal('danger', 'บันทึกไม่สำเร็จ', err.message)
     } finally {
       setSaving(false)
     }
   }
 
+  const fieldClass =
+    'w-full px-3.5 py-2.5 bg-zinc-50 dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#272727] rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-300'
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-6">
       <div>
-        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+        <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
           โจทย์คำถาม <span className="text-rose-500">*</span>
         </label>
         <textarea
@@ -127,21 +130,21 @@ export default function QuestionForm({
           placeholder="พิมพ์โจทย์คำถามที่นี่..."
           value={questionText}
           onChange={(e) => setQuestionText(e.target.value)}
-          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors resize-y leading-relaxed"
+          className={`${fieldClass} resize-y leading-relaxed`}
         />
       </div>
 
       <div>
-        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+        <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
           รูปประกอบโจทย์{' '}
           {existingImageUrl && <span className="text-emerald-600 dark:text-emerald-400 font-medium">(มีรูปเดิมอยู่แล้ว)</span>}
         </label>
         {existingImageUrl && (
-          <div className="mb-2.5 relative inline-block">
+          <div className="mb-3 relative inline-block">
             <img
               src={existingImageUrl}
-              alt="รูปเดิม"
-              className="h-20 w-auto rounded-lg border border-slate-200 dark:border-slate-700 object-cover"
+              alt="รูปประกอบโจทย์เดิม"
+              className="h-20 w-auto rounded-xl border border-zinc-200 dark:border-[#272727] object-cover"
             />
             <button
               type="button"
@@ -157,13 +160,13 @@ export default function QuestionForm({
           type="file"
           accept="image/*"
           onChange={(e) => setImageFile(e.target.files[0])}
-          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-600 dark:text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
+          className="w-full px-3 py-2 bg-zinc-50 dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#272727] rounded-xl text-xs text-zinc-600 dark:text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-700 cursor-pointer"
         />
       </div>
 
-      <div className="space-y-2.5 pt-4 border-t border-slate-200 dark:border-slate-800">
+      <div className="space-y-3 pt-5 border-t border-zinc-200 dark:border-[#272727]">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <label className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
             ตัวเลือกคำตอบ ({options.length} ตัวเลือก) <span className="text-rose-500">*</span>
           </label>
           {options.length < 6 && (
@@ -184,9 +187,9 @@ export default function QuestionForm({
             return (
               <div
                 key={idx}
-                className={`flex items-center gap-2.5 p-1.5 rounded-xl border transition-colors ${
+                className={`flex items-center gap-2.5 p-1.5 rounded-xl border transition-colors duration-300 ${
                   isCorrect
-                    ? 'border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-500/5'
+                    ? 'border-emerald-300 dark:border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-500/10'
                     : 'border-transparent'
                 }`}
               >
@@ -204,14 +207,14 @@ export default function QuestionForm({
                   placeholder={`ตัวเลือกที่ ${idx + 1}`}
                   value={opt}
                   onChange={(e) => handleOptionChange(idx, e.target.value)}
-                  className="w-full min-w-0 h-9 px-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                  className="w-full min-w-0 h-9 px-3 bg-white dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#272727] rounded-lg text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-300"
                 />
                 {options.length > 2 && (
                   <button
                     type="button"
                     onClick={() => removeOption(idx)}
                     aria-label={`ลบตัวเลือกที่ ${idx + 1}`}
-                    className="w-8 h-8 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center justify-center cursor-pointer shrink-0 transition-colors"
+                    className="w-8 h-8 rounded-lg text-zinc-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center justify-center cursor-pointer shrink-0 transition-colors duration-300"
                   >
                     <CloseIcon className="w-3.5 h-3.5" />
                   </button>
@@ -220,13 +223,13 @@ export default function QuestionForm({
             )
           })}
         </div>
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-zinc-500 dark:text-zinc-400">
           คลิกปุ่มวงกลมหน้าตัวเลือกเพื่อกำหนดเป็นคำตอบที่ถูกต้อง
         </p>
       </div>
 
-      <div className="pt-4 border-t border-slate-200 dark:border-slate-800">
-        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+      <div className="pt-5 border-t border-zinc-200 dark:border-[#272727]">
+        <label className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
           คำอธิบายเฉลยละเอียด (ถ้ามี)
         </label>
         <textarea
@@ -234,11 +237,11 @@ export default function QuestionForm({
           placeholder="อธิบายเหตุผลของคำตอบข้อนี้..."
           value={explanation}
           onChange={(e) => setExplanation(e.target.value)}
-          className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors resize-y"
+          className={`${fieldClass} resize-y`}
         />
       </div>
 
-      <div className="space-y-2.5 pt-2">
+      <div className="space-y-3 pt-1">
         <label htmlFor="randomize" className="flex items-start gap-2.5 cursor-pointer">
           <input
             type="checkbox"
@@ -247,7 +250,7 @@ export default function QuestionForm({
             onChange={(e) => setIsRandomized(e.target.checked)}
             className="w-4 h-4 mt-0.5 accent-indigo-600 rounded cursor-pointer shrink-0"
           />
-          <span className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
+          <span className="text-xs text-zinc-700 dark:text-zinc-300 leading-snug">
             สลับตำแหน่งตัวเลือก (Randomize Options) เมื่อผู้เข้าสอบทำข้อนี้
           </span>
         </label>
@@ -260,27 +263,27 @@ export default function QuestionForm({
             onChange={(e) => setIsActive(e.target.checked)}
             className="w-4 h-4 mt-0.5 accent-emerald-600 rounded cursor-pointer shrink-0"
           />
-          <span className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
+          <span className="text-xs text-zinc-700 dark:text-zinc-300 leading-snug">
             เปิดใช้งานข้อสอบทันที (หากนำออกจะเก็บไว้ในสถานะฉบับร่าง)
           </span>
         </label>
       </div>
 
-      <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col-reverse sm:flex-row gap-2.5">
+      <div className="pt-5 border-t border-zinc-200 dark:border-[#272727] flex flex-col-reverse sm:flex-row gap-2.5">
         <button
           type="button"
           onClick={() => {
             handleResetForm()
             onCancelEdit()
           }}
-          className="flex-1 h-10 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-sm transition-colors cursor-pointer"
+          className="flex-1 h-10 bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1F1F1F] dark:hover:bg-[#272727] text-zinc-700 dark:text-zinc-200 font-semibold rounded-xl text-sm transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
         >
           ยกเลิก
         </button>
         <button
           type="submit"
           disabled={saving || !selectedCat}
-          className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition-colors cursor-pointer"
+          className="flex-1 h-10 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
         >
           {saving ? 'กำลังบันทึก...' : editingQuestion ? 'บันทึกการแก้ไข' : 'บันทึกข้อสอบลงคลัง'}
         </button>

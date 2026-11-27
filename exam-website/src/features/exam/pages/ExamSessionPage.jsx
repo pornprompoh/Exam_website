@@ -62,7 +62,7 @@ export default function ExamSessionPage() {
   const isTimeCritical = exam.totalTimeSeconds > 0 && timePercent <= 20
 
   return (
-    <div className="min-h-screen bg-slate-50/70 pb-24 font-sans text-slate-800 relative overflow-x-hidden">
+    <div className="min-h-dvh bg-[#f8f8f9] dark:bg-[#000000] pb-24 font-sans text-zinc-900 dark:text-zinc-100 relative overflow-x-hidden transition-colors duration-300">
       <ExamGuardModals
         answeredCount={answeredCount}
         unansweredCount={unansweredCount}
@@ -108,7 +108,7 @@ export default function ExamSessionPage() {
           onGoHome={exam.goHome}
         />
       ) : (
-        <div className="max-w-6xl mx-auto px-3 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 sm:gap-8 min-w-0">
+        <main className="max-w-6xl mx-auto px-4 sm:px-6 mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-4 gap-6 min-w-0">
           {currentQ && (
             <QuestionCard
               currentQ={currentQ}
@@ -136,7 +136,7 @@ export default function ExamSessionPage() {
             onSelectQuestion={exam.setCurrentIdx}
             onSubmitExam={exam.handleRequestSubmit}
           />
-        </div>
+        </main>
       )}
     </div>
   )

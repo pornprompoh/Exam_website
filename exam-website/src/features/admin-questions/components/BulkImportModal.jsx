@@ -26,7 +26,7 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
       showModal({
         type: 'warning',
         title: 'คัดลอกไม่สำเร็จ',
-        description: 'เบราว์เซอร์ของคุณไม่รองรับการคัดลอกอัตโนมัติ กรุณาคลุมข้อความและกดคัดลอกด้วยตัวเอง'
+        description: 'เบราว์เซอร์ไม่รองรับการคัดลอกอัตโนมัติ กรุณาคลุมข้อความแล้วคัดลอกด้วยตนเอง'
       })
     }
   }
@@ -100,14 +100,14 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
         <button
           type="button"
           onClick={handleClose}
-          className="h-10 px-4 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition-colors cursor-pointer"
+          className="h-10 px-4 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-[#272727] dark:hover:bg-[#313131] text-zinc-700 dark:text-zinc-200 text-sm font-semibold transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
         >
           ยกเลิก
         </button>
         <button
           type="submit"
           form="bulk-import-form"
-          className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-colors cursor-pointer"
+          className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
         >
           ประมวลผลและตรวจสอบ
         </button>
@@ -117,7 +117,7 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
         <button
           type="button"
           onClick={() => setBulkStep('input')}
-          className="h-10 px-4 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
+          className="h-10 px-4 bg-zinc-200 hover:bg-zinc-300 dark:bg-[#272727] dark:hover:bg-[#313131] text-zinc-700 dark:text-zinc-200 font-semibold rounded-xl text-sm transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
         >
           ← กลับไปแก้ไขข้อความ
         </button>
@@ -127,7 +127,7 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
             type="button"
             onClick={() => handleConfirmBulkSave(false)}
             disabled={saving}
-            className="h-10 px-4 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 disabled:opacity-50 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
+            className="h-10 px-4 bg-white hover:bg-zinc-100 dark:bg-[#181818] dark:hover:bg-[#272727] border border-zinc-200 dark:border-[#313131] disabled:opacity-50 text-zinc-700 dark:text-zinc-200 font-semibold rounded-xl text-sm transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
           >
             บันทึกเป็นฉบับร่าง
           </button>
@@ -136,7 +136,7 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
             type="button"
             onClick={() => handleConfirmBulkSave(true)}
             disabled={saving}
-            className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl text-xs sm:text-sm transition-colors cursor-pointer"
+            className="h-10 px-5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
           >
             {saving ? 'กำลังบันทึก...' : `เผยแพร่ทันที (${parsedQuestions.length} ข้อ)`}
           </button>
@@ -149,7 +149,6 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
       isOpen={isOpen}
       onClose={handleClose}
       title="นำเข้าข้อสอบชุดใหญ่ (วางข้อความ)"
-      subtitle="วางข้อความข้อสอบตามฟอร์แมตมาตรฐานเพื่อแปลงและบันทึกลงคลังเป็นชุด"
       titleId="bulk-import-title"
       icon={<UploadBoltIcon className="w-4 h-4" />}
       footer={footer}
@@ -157,26 +156,26 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
     >
       {bulkStep === 'input' ? (
         <div className="space-y-5">
-          <div className="bg-indigo-50/70 dark:bg-indigo-500/10 p-4 rounded-2xl border border-indigo-200/80 dark:border-indigo-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="bg-zinc-50 dark:bg-[#1F1F1F] p-4 rounded-2xl border border-zinc-200 dark:border-[#272727] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="min-w-0">
-              <h3 className="font-semibold text-indigo-900 dark:text-indigo-200 text-sm">
+              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">
                 1. คัดลอกคำสั่งช่วยจัดฟอร์แมตสำหรับ AI
               </h3>
-              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed mt-0.5">
-                นำไปวางพร้อมรูปภาพข้อสอบใน Gemini หรือ ChatGPT เพื่อแปลงเป็นข้อความที่ระบบอ่านได้ทันที
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 leading-relaxed mt-0.5">
+                นำไปวางพร้อมรูปภาพข้อสอบใน Gemini หรือ ChatGPT เพื่อแปลงเป็นข้อความที่ระบบอ่านได้
               </p>
             </div>
             <button
               type="button"
               onClick={handleCopyPrompt}
-              className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs transition-colors shrink-0 cursor-pointer"
+              className="h-9 px-4 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold rounded-xl text-xs transition-all duration-300 ease-premium shrink-0 cursor-pointer"
             >
               {copiedPrompt ? '✓ คัดลอกแล้ว' : 'คัดลอกคำสั่ง Prompt'}
             </button>
           </div>
 
           <form id="bulk-import-form" onSubmit={handleParseBulkText} className="space-y-2">
-            <label htmlFor="bulk-textarea" className="block font-semibold text-slate-700 dark:text-slate-300 text-xs">
+            <label htmlFor="bulk-textarea" className="block font-semibold text-zinc-700 dark:text-zinc-300 text-xs">
               2. วางข้อความข้อสอบที่จัดฟอร์แมตแล้ว (คั่นแต่ละข้อด้วย ---)
             </label>
             <textarea
@@ -185,30 +184,30 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
               value={bulkInputText}
               onChange={(e) => setBulkInputText(e.target.value)}
               placeholder={'1. ข้อใดคือ...\nA. ...\nB. ...\nC. ...\nD. ...\nANS: A\n---'}
-              className="w-full min-h-[300px] bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 text-sm text-slate-900 dark:text-slate-200 font-mono placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+              className="w-full min-h-72 bg-zinc-50 dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#272727] rounded-xl p-4 text-sm text-zinc-900 dark:text-zinc-100 font-mono placeholder:text-zinc-400 dark:placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
             />
           </form>
         </div>
       ) : (
-        <div className="space-y-3.5 animate-fadeIn">
+        <div className="space-y-4 animate-fadeIn">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="font-semibold text-slate-900 dark:text-white text-sm tabular-nums">
+            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm tabular-nums">
               ตรวจสอบรายการที่แปลงได้ ({parsedQuestions.length} ข้อ)
             </h3>
-            <span className="text-xs text-slate-500 dark:text-slate-400">เลือกรูปแบบการบันทึกที่แถบด้านล่าง</span>
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">เลือกรูปแบบการบันทึกที่แถบด้านล่าง</span>
           </div>
 
           <div className="space-y-3">
             {parsedQuestions.map((pq, idx) => (
-              <div
+              <article
                 key={idx}
-                className="bg-slate-50/70 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-4 space-y-3 min-w-0"
+                className="bg-zinc-50 dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#272727] rounded-2xl p-4 space-y-3 min-w-0"
               >
                 <div className="flex items-start gap-2.5 min-w-0">
-                  <span className="px-2 py-0.5 bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-md text-xs font-semibold tabular-nums shrink-0">
+                  <span className="px-2 py-0.5 bg-zinc-200 dark:bg-[#272727] text-zinc-700 dark:text-zinc-300 rounded-md text-xs font-semibold tabular-nums shrink-0">
                     #{idx + 1}
                   </span>
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 break-words [word-break:break-word] leading-relaxed">
+                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 break-words [word-break:break-word] leading-relaxed">
                     {pq.question_text}
                   </p>
                 </div>
@@ -216,10 +215,10 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
                   {pq.options.map((opt, oIdx) => (
                     <div
                       key={oIdx}
-                      className={`text-xs p-2.5 rounded-lg border ${
+                      className={`text-xs p-2.5 rounded-xl border ${
                         oIdx === pq.correct_option
                           ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-900 dark:text-emerald-300 font-semibold'
-                          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                          : 'bg-white dark:bg-[#181818] border-zinc-200 dark:border-[#272727] text-zinc-600 dark:text-zinc-400'
                       }`}
                     >
                       <span className="mr-2 font-bold">{['A', 'B', 'C', 'D'][oIdx]}.</span>
@@ -227,7 +226,7 @@ export default function BulkImportModal({ isOpen, onClose, categoryId, currentUs
                     </div>
                   ))}
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         </div>

@@ -30,33 +30,33 @@ export default function AIExamAuditorModal({
 
   const subHeader = (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 p-1">
+      <div className="inline-flex rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-100 dark:bg-[#1F1F1F] p-1">
         <button
           type="button"
           onClick={() => auditor.setActiveTab('scan')}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-300 ease-premium cursor-pointer ${
             auditor.activeTab === 'scan'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'bg-white dark:bg-[#272727] text-zinc-900 dark:text-zinc-100 shadow-xs'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
           }`}
         >
-          สั่งตรวจทาน (Scan & Audit)
+          สั่งตรวจทาน
         </button>
         <button
           type="button"
           onClick={() => auditor.setActiveTab('flagged')}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-300 ease-premium cursor-pointer inline-flex items-center gap-1.5 ${
             auditor.activeTab === 'flagged'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'bg-white dark:bg-[#272727] text-zinc-900 dark:text-zinc-100 shadow-xs'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
           }`}
         >
           <span>รายการเฉลยผิดปกติ</span>
           <span
-            className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${
+            className={`rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums ${
               auditor.stats.flagged > 0
                 ? 'bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300'
-                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                : 'bg-zinc-200 dark:bg-[#313131] text-zinc-500 dark:text-zinc-400'
             }`}
           >
             {auditor.stats.flagged}
@@ -65,12 +65,12 @@ export default function AIExamAuditorModal({
       </div>
 
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">ขอบเขต:</span>
+        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 shrink-0">ขอบเขต:</span>
         <select
           value={auditor.selectedScope}
           disabled={auditor.isAuditing}
           onChange={(e) => auditor.handleScopeChange(e.target.value)}
-          className="h-9 max-w-xs truncate rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-xs font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
+          className="h-9 max-w-xs truncate rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 dark:bg-[#1F1F1F] px-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
         >
           <option value="ALL">ทั้งหมดทุกหมวดหมู่ในระบบ</option>
           {categories?.map((cat) => (
@@ -89,16 +89,15 @@ export default function AIExamAuditorModal({
         isOpen={isOpen}
         onClose={auditor.handleSafeClose}
         title="AI ตรวจทานความถูกต้องของเฉลย"
-        subtitle="ตรวจเฉพาะความถูกต้องของเฉลยด้วย Exception-Only Mega-Batch 3 ด่าน · ไม่แก้ทับอัตโนมัติ"
         titleId="ai-exam-auditor-title"
         icon={<ShieldCheckIcon className="w-4 h-4" />}
         headerActions={
           <button
             type="button"
             onClick={onGoToSettings}
-            className="hidden sm:inline-flex items-center gap-1.5 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-1.5 h-9 rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 hover:bg-zinc-100 dark:bg-[#1F1F1F] dark:hover:bg-[#272727] px-3 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
           >
-            <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
+            <SettingsIcon className="w-3.5 h-3.5 text-zinc-400" />
             <span>ตั้งค่า AI</span>
           </button>
         }
@@ -176,18 +175,16 @@ export default function AIExamAuditorModal({
         />
       )}
 
-      <div className="relative z-[1100]">
-        <ConfirmModal
-          isOpen={auditor.confirmState.isOpen}
-          type={auditor.confirmState.type}
-          title={auditor.confirmState.title}
-          description={<span className="whitespace-pre-line">{auditor.confirmState.description}</span>}
-          confirmText={auditor.confirmState.confirmText}
-          cancelText="ยกเลิก"
-          onClose={auditor.closeConfirm}
-          onConfirm={() => auditor.confirmState.onConfirm?.()}
-        />
-      </div>
+      <ConfirmModal
+        isOpen={auditor.confirmState.isOpen}
+        type={auditor.confirmState.type}
+        title={auditor.confirmState.title}
+        description={<span className="whitespace-pre-line">{auditor.confirmState.description}</span>}
+        confirmText={auditor.confirmState.confirmText}
+        cancelText="ยกเลิก"
+        onClose={auditor.closeConfirm}
+        onConfirm={() => auditor.confirmState.onConfirm?.()}
+      />
     </>
   )
 }

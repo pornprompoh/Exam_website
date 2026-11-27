@@ -150,7 +150,7 @@ export default function AIExamGeneratorModal({
         <button
           type="button"
           onClick={handleClose}
-          className="h-10 px-4 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-sm font-semibold transition-colors cursor-pointer"
+          className="h-10 px-4 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-[#272727] dark:hover:bg-[#313131] text-zinc-700 dark:text-zinc-200 text-sm font-semibold transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
         >
           ยกเลิก
         </button>
@@ -158,7 +158,7 @@ export default function AIExamGeneratorModal({
           type="submit"
           form="ai-generator-form"
           disabled={isGenerating}
-          className="h-10 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-sm font-semibold text-white transition-colors cursor-pointer inline-flex items-center gap-2"
+          className="h-10 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-sm font-semibold text-white transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer inline-flex items-center gap-2"
         >
           <SparklesIcon className="w-4 h-4" />
           <span>{isGenerating ? 'กำลังสร้างข้อสอบ...' : 'สร้างข้อสอบด้วย AI'}</span>
@@ -169,7 +169,7 @@ export default function AIExamGeneratorModal({
         <button
           type="button"
           onClick={() => setStep('setup')}
-          className="h-10 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 px-4 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+          className="h-10 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-[#272727] dark:hover:bg-[#313131] px-4 text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
         >
           ← สร้างใหม่
         </button>
@@ -177,7 +177,7 @@ export default function AIExamGeneratorModal({
           <button
             type="button"
             onClick={handleClose}
-            className="h-10 rounded-xl bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 px-4 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+            className="h-10 rounded-xl bg-zinc-200 hover:bg-zinc-300 dark:bg-[#272727] dark:hover:bg-[#313131] px-4 text-sm font-semibold text-zinc-700 dark:text-zinc-200 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
           >
             ยกเลิก
           </button>
@@ -185,7 +185,7 @@ export default function AIExamGeneratorModal({
             type="button"
             onClick={handleSave}
             disabled={saving || questions.length === 0}
-            className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-5 text-sm font-semibold text-white transition-colors cursor-pointer"
+            className="h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 px-5 text-sm font-semibold text-white transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
           >
             {saving ? 'กำลังบันทึก...' : `ยืนยันนำเข้า ${questions.length} ข้อ`}
           </button>
@@ -199,7 +199,7 @@ export default function AIExamGeneratorModal({
         isOpen={isOpen}
         onClose={handleClose}
         title="AI สร้างข้อสอบจากเอกสาร"
-        subtitle={step === 'setup' ? 'สรุปเนื้อหาจากเอกสาร PDF/TXT และสร้างข้อสอบใหม่อัตโนมัติ' : 'ตรวจสอบและแก้ไขข้อสอบก่อนนำเข้าคลัง'}
+        subtitle={step === 'review' ? 'ตรวจสอบและแก้ไขข้อสอบก่อนนำเข้าคลัง' : ''}
         titleId="ai-exam-generator-title"
         icon={<SparklesIcon className="w-4 h-4" />}
         footer={!isGenerating && !generationError ? footer : null}
@@ -234,9 +234,9 @@ export default function AIExamGeneratorModal({
         ) : (
           <div className="space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white tabular-nums">
+              <div className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 tabular-nums">
                 ตรวจทานแล้ว {questions.length} ข้อ{' '}
-                <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
+                <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400">
                   (ข้อมูลแหล่งที่มาใช้ตรวจสอบเท่านั้น จะไม่ถูกบันทึก)
                 </span>
               </div>
@@ -253,16 +253,15 @@ export default function AIExamGeneratorModal({
           <div
             role="status"
             aria-live="polite"
-            className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/90 dark:bg-slate-950/90 p-6 text-center backdrop-blur-sm"
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/92 dark:bg-[#181818]/94 p-6 text-center backdrop-blur-xs"
           >
-            <div className="relative mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 animate-pulse">
               <SparklesIcon className="w-6 h-6" />
-              <span className="absolute inset-0 animate-spin rounded-2xl border-2 border-indigo-500/50 border-t-transparent" />
             </div>
             <p className="text-xs font-semibold text-indigo-600 dark:text-indigo-300 tabular-nums">
               ขั้นตอน {generationProgress.step} / 4
             </p>
-            <h3 className="mt-2 max-w-md text-base font-bold leading-relaxed text-slate-900 dark:text-white">
+            <h3 className="mt-2 max-w-md text-base font-bold leading-relaxed text-zinc-900 dark:text-zinc-100">
               {generationProgress.message}
             </h3>
             <div
@@ -271,15 +270,15 @@ export default function AIExamGeneratorModal({
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={[25, 50, 85, 100][generationProgress.step - 1]}
-              className="mt-5 h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
+              className="mt-5 h-2 w-full max-w-xs overflow-hidden rounded-full bg-zinc-200 dark:bg-[#272727]"
             >
               <div
-                className="h-full rounded-full bg-indigo-600 dark:bg-indigo-400 transition-all duration-500"
+                className="h-full rounded-full bg-indigo-600 dark:bg-indigo-400 transition-all duration-500 ease-premium"
                 style={{ width: `${[25, 50, 85, 100][generationProgress.step - 1]}%` }}
               />
             </div>
-            <p className="mt-5 max-w-sm text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-              ใช้เวลาประมาณ 15–30 วินาที สามารถคลิกพื้นหลังเพื่อปิดหน้าต่างชั่วคราวได้ ระบบจะทำงานต่อเนื่องอัตโนมัติ
+            <p className="mt-5 max-w-sm text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+              ใช้เวลาประมาณ 15 ถึง 30 วินาที สามารถคลิกพื้นหลังเพื่อปิดหน้าต่างชั่วคราวได้ ระบบจะทำงานต่อเนื่องอัตโนมัติ
             </p>
           </div>
         )}
@@ -287,17 +286,17 @@ export default function AIExamGeneratorModal({
         {generationError && !isGenerating && (
           <div
             role="alert"
-            className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/92 dark:bg-slate-950/92 p-6 text-center backdrop-blur-sm"
+            className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-white/95 dark:bg-[#181818]/95 p-6 text-center backdrop-blur-xs"
           >
             <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400">
               <AlertTriangleIcon className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">สร้างข้อสอบไม่สำเร็จ</h3>
+            <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">สร้างข้อสอบไม่สำเร็จ</h3>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-rose-700 dark:text-rose-300">{generationError}</p>
             <button
               type="button"
               onClick={() => setGenerationError('')}
-              className="mt-5 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 px-5 text-sm font-semibold text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
+              className="mt-5 h-10 rounded-xl border border-zinc-200 dark:border-[#313131] bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1F1F1F] dark:hover:bg-[#272727] px-5 text-sm font-semibold text-zinc-800 dark:text-zinc-200 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
             >
               กลับไปตรวจสอบและลองอีกครั้ง
             </button>

@@ -20,11 +20,11 @@ export default function QuestionManagerPage() {
   const qm = useQuestionManager()
 
   return (
-    <div className="space-y-4 relative">
+    <div className="space-y-5 relative">
       <ConfirmModal
         isOpen={!!qm.deleteTarget}
         type="danger"
-        title="ยืนยันการลบข้อสอบนี้?"
+        title="ยืนยันการลบข้อสอบนี้"
         description="ข้อสอบและไฟล์รูปภาพประกอบจะถูกลบออกจากระบบและคลังข้อผิดพลาดถาวร"
         confirmText="ลบข้อสอบถาวร"
         cancelText="ยกเลิก"
@@ -35,7 +35,7 @@ export default function QuestionManagerPage() {
       <ConfirmModal
         isOpen={qm.showBulkDeleteConfirm}
         type="danger"
-        title={`ยืนยันลบข้อสอบที่เลือก ${qm.selectedIds.length} ข้อ?`}
+        title={`ยืนยันลบข้อสอบที่เลือก ${qm.selectedIds.length} ข้อ`}
         description="ข้อสอบที่เลือกไว้ทั้งหมด รวมถึงไฟล์รูปภาพประกอบ จะถูกลบออกจากระบบอย่างถาวรและไม่สามารถกู้คืนได้"
         confirmText={`ลบทั้ง ${qm.selectedIds.length} ข้อ`}
         cancelText="ยกเลิก"
@@ -46,8 +46,8 @@ export default function QuestionManagerPage() {
       <ConfirmModal
         isOpen={qm.showClearStagingConfirm}
         type="danger"
-        title={`ยืนยันล้าง Draft ทั้งหมด (${qm.stagingCount} ข้อ)?`}
-        description="ข้อสอบ Draft ในตาราง Staging และ Checkpoint ของหมวดหมู่นี้จะถูกลบออกทั้งหมด (ไม่กระทบข้อสอบหลักที่เผยแพร่แล้ว)"
+        title={`ยืนยันล้าง Draft ทั้งหมด (${qm.stagingCount} ข้อ)`}
+        description="ข้อสอบ Draft ในตาราง Staging และ Checkpoint ของหมวดหมู่นี้จะถูกลบออกทั้งหมด โดยไม่กระทบข้อสอบหลักที่เผยแพร่แล้ว"
         confirmText={`ล้าง Draft (${qm.stagingCount} ข้อ)`}
         cancelText="ยกเลิก"
         onClose={() => qm.setShowClearStagingConfirm(false)}
@@ -153,11 +153,7 @@ export default function QuestionManagerPage() {
         isOpen={qm.isFormOpen}
         onClose={qm.handleCloseForm}
         title={qm.editingQuestion ? 'แก้ไขโจทย์ข้อสอบ' : 'สร้างโจทย์ข้อสอบใหม่'}
-        subtitle={
-          qm.editingQuestion
-            ? `รหัสข้อสอบ: ${qm.editingQuestion.id.substring(0, 8)}...`
-            : 'เพิ่มโจทย์ ตัวเลือก และเฉลยทีละข้อลงในคลัง'
-        }
+        subtitle={qm.editingQuestion ? `รหัสข้อสอบ ${qm.editingQuestion.id.substring(0, 8)}` : ''}
         titleId="question-form-drawer-title"
         icon={qm.editingQuestion ? <EditIcon className="w-4 h-4" /> : <PlusIcon className="w-4 h-4" />}
         maxWidth="max-w-xl"
@@ -175,7 +171,7 @@ export default function QuestionManagerPage() {
         />
       </AdminModalShell>
 
-      <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div className="bg-white dark:bg-[#181818] p-4 rounded-2xl border border-zinc-200 dark:border-[#272727]">
         <QuestionFilterBar
           categories={qm.categories}
           selectedCategory={qm.selectedCat}
@@ -206,7 +202,7 @@ export default function QuestionManagerPage() {
             type="button"
             onClick={qm.handleOpenCreateForm}
             disabled={qm.categories.length === 0}
-            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 shrink-0"
+            className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer inline-flex items-center gap-1.5 shrink-0"
           >
             <PlusIcon className="w-4 h-4" />
             <span>เพิ่มข้อสอบ</span>
@@ -226,7 +222,7 @@ export default function QuestionManagerPage() {
 
       {qm.categories.length === 0 ? (
         <EmptyState
-          icon={<FolderIcon className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />}
+          icon={<FolderIcon className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />}
           title="ยังไม่มีหมวดหมู่วิชาในระบบ"
           description="กรุณาสร้างหมวดหมู่วิชาในหน้าจัดการหมวดหมู่ก่อนเริ่มเพิ่มข้อสอบ"
           actionText="ไปหน้าจัดการหมวดหมู่"

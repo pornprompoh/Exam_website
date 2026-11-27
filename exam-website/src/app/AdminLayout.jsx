@@ -7,6 +7,13 @@ import QuestionManagerPage from '../features/admin-questions/pages/QuestionManag
 import UserManagerPage from '../features/admin-users/pages/UserManagerPage'
 import AISettingsPage from '../features/admin-ai/settings/pages/AISettingsPage'
 
+const TAB_TITLES = {
+  categories: 'จัดการหมวดหมู่วิชา',
+  questions: 'จัดการคลังข้อสอบ',
+  users: 'จัดการผู้ใช้งานและสิทธิ์',
+  'ai-settings': 'ตั้งค่า AI'
+}
+
 export default function AdminLayout({ userRole }) {
   const location = useLocation()
   const activeTab = location.pathname.split('/')[2] || 'categories'
@@ -16,7 +23,7 @@ export default function AdminLayout({ userRole }) {
   const handleTriggerLogout = () => {
     showModal({
       type: 'danger',
-      title: 'ออกจากระบบใช่หรือไม่?',
+      title: 'ออกจากระบบใช่หรือไม่',
       description: 'งานที่ยังไม่ได้บันทึกอาจสูญหาย ระบบจะพากลับไปยังหน้าเข้าสู่ระบบ',
       confirmText: 'ออกจากระบบ',
       cancelText: 'ยกเลิก',
@@ -36,27 +43,25 @@ export default function AdminLayout({ userRole }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans pb-24 overflow-x-hidden transition-colors">
+    <div className="min-h-dvh bg-[#f8f8f9] dark:bg-[#000000] text-zinc-900 dark:text-zinc-100 pb-24 overflow-x-hidden transition-colors duration-300 ease-premium">
+      <a
+        href="#admin-main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-90 focus:px-3 focus:py-2 focus:rounded-lg focus:bg-indigo-600 focus:text-white focus:text-sm focus:font-semibold"
+      >
+        ข้ามไปยังเนื้อหาหลัก
+      </a>
+
       <Navbar onLogoutClick={handleTriggerLogout} />
 
-      <div className="bg-white dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800/80 py-5 sm:py-6 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            {activeTab === 'categories' && 'จัดการหมวดหมู่วิชา'}
-            {activeTab === 'questions' && 'จัดการคลังข้อสอบ'}
-            {activeTab === 'users' && 'จัดการผู้ใช้งานและสิทธิ์'}
-            {activeTab === 'ai-settings' && 'ตั้งค่า AI (Gemini)'}
+      <header className="bg-white dark:bg-[#181818] border-b border-zinc-200 dark:border-[#272727]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
+          <h1 className="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100">
+            {TAB_TITLES[activeTab]}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1">
-            {activeTab === 'categories' && (isFullAdmin ? 'เพิ่ม แก้ไข และจัดการสิทธิ์หมวดหมู่วิชาทั้งหมดในระบบ' : 'จัดการหมวดหมู่วิชาที่คุณดูแล')}
-            {activeTab === 'questions' && 'จัดการโจทย์ นำเข้าข้อสอบ สกัดจากไฟล์ และตรวจทานเฉลย'}
-            {activeTab === 'users' && 'ตรวจสอบรายชื่อและกำหนดบทบาทผู้ใช้งาน'}
-            {activeTab === 'ai-settings' && 'ตั้งค่า Gemini API Key และโมเดลเริ่มต้นบนเบราว์เซอร์นี้'}
-          </p>
         </div>
-      </div>
+      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
+      <main id="admin-main-content" className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
         {activeTab === 'categories' && <CategoryManagerPage />}
         {activeTab === 'questions' && <QuestionManagerPage />}
         {activeTab === 'users' && isFullAdmin && <UserManagerPage />}

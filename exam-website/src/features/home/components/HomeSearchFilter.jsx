@@ -1,3 +1,5 @@
+import { CloseIcon, SearchIcon } from '../../../shared/components/AdminIcons'
+
 export default function HomeSearchFilter({
   categories,
   searchQuery,
@@ -7,34 +9,53 @@ export default function HomeSearchFilter({
   onClear
 }) {
   return (
-    <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+    <div className="bg-white dark:bg-[#181818] p-3.5 sm:p-4 rounded-2xl border border-zinc-200 dark:border-[#272727] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 transition-colors duration-300">
       <div className="relative flex-1">
-        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 text-sm">🔍</span>
+        <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400 dark:text-zinc-500">
+          <SearchIcon className="w-4 h-4" />
+        </span>
         <input
           type="text"
-          placeholder="พิมพ์ชื่อวิชา หรือรหัส Subject Code (เช่น #486002)..."
+          aria-label="ค้นหาชื่อวิชาหรือรหัสวิชา"
+          placeholder="พิมพ์ชื่อวิชา หรือรหัสวิชา (เช่น #486002)..."
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-slate-100/80 focus:bg-white border border-slate-200 rounded-xl text-xs sm:text-sm font-medium text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+          className="w-full pl-10 pr-9 py-2.5 bg-zinc-50 dark:bg-[#1F1F1F] hover:bg-zinc-100/70 dark:hover:bg-[#272727] focus:bg-white dark:focus:bg-[#272727] border border-zinc-200 dark:border-[#313131] rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-300 ease-premium"
         />
         {searchQuery && (
-          <button type="button" onClick={() => onSearchChange('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer">
-            ✕
+          <button
+            type="button"
+            onClick={() => onSearchChange('')}
+            aria-label="ล้างคำค้นหา"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+          >
+            <CloseIcon className="w-4 h-4" />
           </button>
         )}
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
         <select
+          aria-label="กรองตามหมวดวิชา"
           value={selectedFilter}
           onChange={(e) => onFilterChange(e.target.value)}
-          className="w-full sm:w-56 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all cursor-pointer"
+          className="w-full sm:w-56 px-3.5 py-2.5 bg-zinc-50 dark:bg-[#1F1F1F] hover:bg-zinc-100/70 dark:hover:bg-[#272727] border border-zinc-200 dark:border-[#313131] rounded-xl text-sm font-medium text-zinc-800 dark:text-zinc-200 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-300 ease-premium cursor-pointer"
         >
-          <option value="ALL">💡 แสดงทุกสาระการเรียนรู้ </option>
-          {categories.map((category) => <option key={category.id} value={category.id}>📖 {category.name}</option>)}
+          <option value="ALL">แสดงทุกหมวดวิชา</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>
+              {category.name}
+            </option>
+          ))}
         </select>
+
         {(searchQuery || selectedFilter !== 'ALL') && (
-          <button type="button" onClick={onClear} className="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer" title="ล้างการค้นหา">
+          <button
+            type="button"
+            onClick={onClear}
+            className="px-3.5 py-2.5 bg-zinc-100 dark:bg-[#272727] hover:bg-zinc-200 dark:hover:bg-[#313131] active:scale-[0.98] text-zinc-700 dark:text-zinc-200 rounded-xl text-sm font-medium transition-all duration-300 ease-premium shrink-0 cursor-pointer"
+            title="ล้างการค้นหา"
+          >
             ล้าง
           </button>
         )}

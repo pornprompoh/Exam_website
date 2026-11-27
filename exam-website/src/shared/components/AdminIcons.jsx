@@ -1,4 +1,4 @@
-// Consistent authored inline SVG icon system for Admin UI (1.75 stroke weight, zero external deps)
+// Consistent inline SVG icon system for Admin & Shared UI (1.75 stroke weight, zero external deps)
 
 const baseProps = (className = 'w-4 h-4') => ({
   viewBox: '0 0 24 24',
@@ -28,6 +28,14 @@ export function SparklesIcon({ className }) {
   )
 }
 
+export function BoltIcon({ className }) {
+  return (
+    <svg {...baseProps(className)}>
+      <path d="M13 2 4.5 13.5H12L11 22l8.5-11.5H12L13 2Z" />
+    </svg>
+  )
+}
+
 export function FileExtractIcon({ className }) {
   return (
     <svg {...baseProps(className)}>
@@ -40,7 +48,7 @@ export function FileExtractIcon({ className }) {
 export function ShieldCheckIcon({ className }) {
   return (
     <svg {...baseProps(className)}>
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+      <path d="M12 3 4 6.5v5.5c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6.5L12 3Z" />
       <path d="m9 12 2 2 4-4" />
     </svg>
   )
@@ -69,6 +77,14 @@ export function ChevronDownIcon({ className }) {
   return (
     <svg {...baseProps(className)}>
       <path d="m6 9 6 6 6-6" />
+    </svg>
+  )
+}
+
+export function MenuIcon({ className }) {
+  return (
+    <svg {...baseProps(className)}>
+      <path d="M4 7h16M4 12h16M4 17h16" />
     </svg>
   )
 }
@@ -208,6 +224,42 @@ export function FlagIcon({ className }) {
     <svg {...baseProps(className)}>
       <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1Z" />
       <line x1="4" y1="22" x2="4" y2="15" />
+    </svg>
+  )
+}
+
+export function SunIcon({ className }) {
+  return (
+    <svg {...baseProps(className)}>
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+    </svg>
+  )
+}
+
+export function MoonIcon({ className }) {
+  return (
+    <svg {...baseProps(className)}>
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" />
+    </svg>
+  )
+}
+
+export function UserIcon({ className }) {
+  return (
+    <svg {...baseProps(className)}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20a8 8 0 0 1 16 0" />
+    </svg>
+  )
+}
+
+export function LogOutIcon({ className }) {
+  return (
+    <svg {...baseProps(className)}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   )
 }

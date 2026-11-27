@@ -9,14 +9,14 @@ export default function QuestionFilterBar({
   children
 }) {
   return (
-    <div className="flex flex-col lg:flex-row lg:items-center gap-2.5 w-full">
+    <div className="flex flex-col lg:flex-row lg:items-center gap-3 w-full">
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 flex-1 min-w-0">
         {categories.length > 0 ? (
           <select
             aria-label="เลือกหมวดหมู่วิชา"
             value={selectedCategory}
             onChange={(event) => onCategoryChange(event.target.value)}
-            className="w-full sm:w-64 lg:w-60 h-10 px-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors cursor-pointer shrink-0"
+            className="w-full sm:w-64 lg:w-60 h-10 px-3 bg-zinc-50 dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#272727] rounded-xl text-sm font-semibold text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-300 ease-premium cursor-pointer shrink-0"
           >
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
@@ -31,14 +31,14 @@ export default function QuestionFilterBar({
         )}
 
         <div className="relative flex-1 min-w-0">
-          <SearchIcon className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <SearchIcon className="w-4 h-4 text-zinc-400 dark:text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="search"
             value={searchValue}
             onChange={(event) => onSearchChange?.(event.target.value)}
             placeholder="ค้นหาโจทย์ในหน้านี้..."
             aria-label="ค้นหาโจทย์ข้อสอบ"
-            className="w-full h-10 pl-9 pr-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+            className="w-full h-10 pl-9 pr-3 bg-zinc-50 dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#272727] rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors duration-300 ease-premium"
           />
         </div>
       </div>

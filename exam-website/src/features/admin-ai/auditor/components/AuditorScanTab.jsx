@@ -38,11 +38,10 @@ export default function AuditorScanTab({
 
   return (
     <div className="space-y-5">
-      {/* 4 Live Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950 p-4">
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">ข้อสอบทั้งหมด</p>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-slate-900 dark:text-white">
+        <div className="rounded-2xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 dark:bg-[#1F1F1F] p-4">
+          <p className="text-xs font-medium text-zinc-500 dark:text-zinc-400">ข้อสอบทั้งหมด</p>
+          <p className="mt-1 text-2xl font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
             {stats.total.toLocaleString()}
           </p>
         </div>
@@ -61,7 +60,7 @@ export default function AuditorScanTab({
         <button
           type="button"
           onClick={onOpenFlaggedTab}
-          className="text-left rounded-2xl border border-rose-200 dark:border-rose-500/35 bg-rose-50/70 hover:bg-rose-100/70 dark:bg-rose-500/10 dark:hover:bg-rose-500/15 p-4 transition-colors cursor-pointer"
+          className="text-left rounded-2xl border border-rose-200 dark:border-rose-500/35 bg-rose-50/70 hover:bg-rose-100/70 dark:bg-rose-500/10 dark:hover:bg-rose-500/15 p-4 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
         >
           <p className="text-xs font-medium text-rose-800 dark:text-rose-300">พบเฉลยอาจผิด</p>
           <p className="mt-1 text-2xl font-bold tabular-nums text-rose-700 dark:text-rose-400">
@@ -70,15 +69,14 @@ export default function AuditorScanTab({
         </button>
       </div>
 
-      {/* Configuration Panel */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/70 p-4 sm:p-5 space-y-4">
+      <div className="rounded-2xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 dark:bg-[#1F1F1F] p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-xs font-semibold text-slate-800 dark:text-slate-200">ตั้งค่าการตรวจทาน</h3>
+          <h3 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200">ตั้งค่าการตรวจทาน</h3>
           <button
             type="button"
             disabled={isAuditing || stats.total === 0}
             onClick={onRequestResetAudit}
-            className="h-8 rounded-lg border border-slate-200 dark:border-slate-700 bg-white hover:bg-slate-100 dark:bg-slate-900 dark:hover:bg-slate-800 disabled:opacity-40 px-3 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+            className="h-8 rounded-lg border border-zinc-200 dark:border-[#313131] bg-white hover:bg-zinc-100 dark:bg-[#181818] dark:hover:bg-[#272727] disabled:opacity-40 px-3 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors duration-300 cursor-pointer"
           >
             รีเซ็ตสถานะเพื่อตรวจใหม่
           </button>
@@ -86,7 +84,7 @@ export default function AuditorScanTab({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
+            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
               จำนวนข้อที่ต้องการตรวจรอบนี้
             </label>
             <div className="flex items-center gap-2">
@@ -94,7 +92,7 @@ export default function AuditorScanTab({
                 value={limitMode}
                 disabled={isAuditing}
                 onChange={(e) => onLimitModeChange(e.target.value)}
-                className="flex-1 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                className="flex-1 h-9 rounded-xl border border-zinc-200 dark:border-[#313131] bg-white dark:bg-[#181818] px-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
               >
                 <option value="all">ตรวจที่เหลือทั้งหมด ({stats.unchecked.toLocaleString()} ข้อ)</option>
                 <option value="custom">จำกัดจำนวนข้อเอง</option>
@@ -107,7 +105,7 @@ export default function AuditorScanTab({
                   disabled={isAuditing}
                   value={customLimitInput}
                   onChange={(e) => onCustomLimitChange(e.target.value)}
-                  className="w-24 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-semibold tabular-nums text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-24 h-9 rounded-xl border border-zinc-200 dark:border-[#313131] bg-white dark:bg-[#181818] px-3 text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="200"
                 />
               )}
@@ -115,8 +113,8 @@ export default function AuditorScanTab({
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400">
-              ขนาด Mega-Batch ({MIN_AUDITOR_BATCH_SIZE}–{MAX_AUDITOR_BATCH_SIZE} ข้อ/รอบ · แนะนำ 40)
+            <label className="block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+              ขนาด Mega-Batch ({MIN_AUDITOR_BATCH_SIZE} ถึง {MAX_AUDITOR_BATCH_SIZE} ข้อต่อรอบ · แนะนำ 40)
             </label>
             <input
               type="number"
@@ -125,17 +123,17 @@ export default function AuditorScanTab({
               disabled={isAuditing}
               value={batchSizeInput}
               onChange={(e) => onBatchSizeChange(e.target.value)}
-              className="w-full h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 text-xs font-semibold tabular-nums text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full h-9 rounded-xl border border-zinc-200 dark:border-[#313131] bg-white dark:bg-[#181818] px-3 text-xs font-semibold tabular-nums text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <label
-            className={`rounded-xl border p-3.5 cursor-pointer transition-colors flex items-start gap-3 ${
+            className={`rounded-xl border p-3.5 cursor-pointer transition-colors duration-300 flex items-start gap-3 ${
               modelRoutingMode === 'hybrid'
                 ? 'border-indigo-400 dark:border-indigo-500/60 bg-white dark:bg-indigo-500/10 ring-1 ring-indigo-500/20'
-                : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700'
+                : 'border-zinc-200 dark:border-[#272727] bg-white/80 dark:bg-[#181818] hover:border-zinc-300 dark:hover:border-[#313131]'
             }`}
           >
             <input
@@ -148,18 +146,18 @@ export default function AuditorScanTab({
               className="mt-1 accent-indigo-600 cursor-pointer"
             />
             <div className="space-y-1.5 min-w-0 flex-1">
-              <p className="text-xs font-bold text-slate-900 dark:text-white">
+              <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
                 Hybrid: Flash Lite + Flash Standard (แนะนำ)
               </p>
-              <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
-                ด่าน 1 คัดกรองด้วย {getGeminiModelLabel(liteModel)} · ด่าน 2 ยืนยันตัด False Positive ด้วย Flash Standard (Auto-Fallback)
+              <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
+                ด่าน 1 คัดกรองด้วย {getGeminiModelLabel(liteModel)} · ด่าน 2 ยืนยันตัด False Positive ด้วย Flash Standard
               </p>
               {modelRoutingMode === 'hybrid' && GEMINI_STANDARD_MODELS.length > 0 && (
                 <select
                   value={selectedDeepModel}
                   disabled={isAuditing}
                   onChange={(e) => onSelectedDeepModelChange(e.target.value)}
-                  className="w-full h-9 rounded-lg border border-slate-200 dark:border-indigo-500/40 bg-slate-50 dark:bg-slate-950 px-2.5 text-xs font-semibold text-slate-800 dark:text-indigo-200 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                  className="w-full h-9 rounded-lg border border-zinc-200 dark:border-indigo-500/40 bg-zinc-50 dark:bg-[#181818] px-2.5 text-xs font-semibold text-zinc-800 dark:text-indigo-200 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
                 >
                   {GEMINI_STANDARD_MODELS.map((m) => (
                     <option key={m.value} value={m.value}>
@@ -172,10 +170,10 @@ export default function AuditorScanTab({
           </label>
 
           <label
-            className={`rounded-xl border p-3.5 cursor-pointer transition-colors flex items-start gap-3 ${
+            className={`rounded-xl border p-3.5 cursor-pointer transition-colors duration-300 flex items-start gap-3 ${
               modelRoutingMode === 'lite_only'
                 ? 'border-indigo-400 dark:border-indigo-500/60 bg-white dark:bg-indigo-500/10 ring-1 ring-indigo-500/20'
-                : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 hover:border-slate-300 dark:hover:border-slate-700'
+                : 'border-zinc-200 dark:border-[#272727] bg-white/80 dark:bg-[#181818] hover:border-zinc-300 dark:hover:border-[#313131]'
             }`}
           >
             <input
@@ -188,8 +186,8 @@ export default function AuditorScanTab({
               className="mt-1 accent-indigo-600 cursor-pointer"
             />
             <div className="space-y-1 min-w-0">
-              <p className="text-xs font-bold text-slate-900 dark:text-white">Flash Lite อย่างเดียว</p>
-              <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">
+              <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Flash Lite อย่างเดียว</p>
+              <p className="text-xs leading-relaxed text-zinc-500 dark:text-zinc-400">
                 ใช้ {getGeminiModelLabel(liteModel)} (15 RPM / 500 RPD) ทั้งด่าน 1 และด่าน 2 ไม่ใช้โควตา Flash Standard
               </p>
             </div>
@@ -198,7 +196,7 @@ export default function AuditorScanTab({
 
         <div className="rounded-xl border border-emerald-200 dark:border-emerald-500/25 bg-emerald-50/70 dark:bg-emerald-500/10 px-3.5 py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs">
           <span className="font-semibold text-emerald-900 dark:text-emerald-200">
-            ประมาณการโควต้า: {quotaEstimate.summaryText}
+            ประมาณการโควตา: {quotaEstimate.summaryText}
           </span>
           <span className="text-emerald-700 dark:text-emerald-300/80">
             ด่าน 2 ใช้ {modelRoutingMode === 'hybrid' ? getGeminiModelLabel(deepModel) : getGeminiModelLabel(liteModel)}
@@ -206,26 +204,25 @@ export default function AuditorScanTab({
         </div>
       </div>
 
-      {/* Action Buttons */}
       <div className="flex flex-wrap items-center gap-2.5">
         {!isAuditing ? (
           <button
             type="button"
             disabled={loadingData || stats.unchecked === 0 || targetScanCount === 0}
             onClick={onStartAudit}
-            className="flex-1 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 px-5 text-sm font-semibold text-white transition-colors cursor-pointer"
+            className="flex-1 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 px-5 text-sm font-semibold text-white transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
           >
             {stats.unchecked === 0
               ? 'ตรวจครบทุกข้อแล้ว'
-              : `เริ่มตรวจทานเฉลย ${targetScanCount.toLocaleString()} ข้อ (ข้ามข้อที่ตรวจแล้วอัตโนมัติ)`}
+              : `เริ่มตรวจทานเฉลย ${targetScanCount.toLocaleString()} ข้อ`}
           </button>
         ) : (
           <button
             type="button"
             onClick={onPauseAudit}
-            className="flex-1 h-11 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 px-5 text-sm font-semibold text-amber-900 dark:text-amber-300 transition-colors cursor-pointer"
+            className="flex-1 h-11 rounded-xl border border-amber-300 dark:border-amber-500/40 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:hover:bg-amber-500/25 px-5 text-sm font-semibold text-amber-900 dark:text-amber-300 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
           >
-            หยุดพักชั่วคราว (เซฟผลทุก Batch แล้ว)
+            หยุดพักชั่วคราว (บันทึกผลทุก Batch แล้ว)
           </button>
         )}
 
@@ -233,7 +230,7 @@ export default function AuditorScanTab({
           <button
             type="button"
             onClick={onOpenFlaggedTab}
-            className="h-11 rounded-xl border border-rose-200 dark:border-rose-500/35 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/15 dark:hover:bg-rose-500/25 px-4 text-xs font-semibold text-rose-700 dark:text-rose-200 transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1.5"
+            className="h-11 rounded-xl border border-rose-200 dark:border-rose-500/35 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/15 dark:hover:bg-rose-500/25 px-4 text-xs font-semibold text-rose-700 dark:text-rose-200 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer shrink-0 inline-flex items-center gap-1.5"
           >
             <FlagIcon className="w-3.5 h-3.5" />
             <span>เปิดตรวจ Flagged ({stats.flagged}) →</span>
@@ -241,9 +238,8 @@ export default function AuditorScanTab({
         )}
       </div>
 
-      {/* Real-Time 3-Stage Progress Dashboard */}
       {(isAuditing || progress) && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950 p-4 space-y-3.5">
+        <div className="rounded-2xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 dark:bg-[#1F1F1F] p-4 space-y-3.5">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             {AUDIT_STAGES.map((st) => {
               const isDone = progress?.status === 'completed' || activeStage > st.stage
@@ -255,23 +251,23 @@ export default function AuditorScanTab({
                     isDone
                       ? 'border-emerald-200 dark:border-emerald-500/35 bg-emerald-50/80 dark:bg-emerald-500/10 text-emerald-900 dark:text-emerald-200'
                       : isCurrent
-                        ? 'border-indigo-300 dark:border-indigo-500/50 bg-indigo-50/80 dark:bg-indigo-500/15 text-indigo-950 dark:text-white'
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 text-slate-400 dark:text-slate-500'
+                        ? 'border-indigo-300 dark:border-indigo-500/50 bg-indigo-50/80 dark:bg-indigo-500/15 text-indigo-950 dark:text-zinc-100'
+                        : 'border-zinc-200 dark:border-[#272727] bg-white dark:bg-[#181818] text-zinc-400 dark:text-zinc-500'
                   }`}
                 >
                   <span
-                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold tabular-nums ${
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-xs font-bold tabular-nums ${
                       isDone
                         ? 'bg-emerald-600 text-white'
                         : isCurrent
                           ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                          : 'bg-zinc-200 dark:bg-[#272727] text-zinc-500 dark:text-zinc-400'
                     }`}
                   >
                     {isDone ? '✓' : st.stage}
                   </span>
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold opacity-75">{st.label}</p>
+                    <p className="text-xs font-medium opacity-75">{st.label}</p>
                     <p className="text-xs font-semibold truncate">{st.title}</p>
                   </div>
                 </div>
@@ -283,27 +279,25 @@ export default function AuditorScanTab({
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-2 min-w-0">
                 {isAuditing && (
-                  <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent shrink-0" />
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-indigo-500 animate-pulse shrink-0" />
                 )}
-                <span className="font-semibold text-slate-800 dark:text-slate-200 truncate">
+                <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate">
                   {progress?.statusMessage}
                 </span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {progress?.activeModelLabel && (
-                  <span className="rounded-md border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/15 px-2 py-0.5 text-[11px] font-semibold text-indigo-700 dark:text-indigo-200">
+                  <span className="rounded-md border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/15 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:text-indigo-200">
                     {progress.activeModelLabel}
                   </span>
                 )}
-                <span className="font-bold tabular-nums text-indigo-700 dark:text-indigo-300">
-                  {progressPercent}%
-                </span>
+                <span className="font-bold tabular-nums text-indigo-700 dark:text-indigo-300">{progressPercent}%</span>
               </div>
             </div>
 
-            <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-[#272727]">
               <div
-                className={`h-full rounded-full transition-all duration-300 ${
+                className={`h-full rounded-full transition-all duration-500 ease-premium ${
                   progress?.status === 'error'
                     ? 'bg-rose-500'
                     : progress?.status === 'paused'
@@ -322,7 +316,10 @@ export default function AuditorScanTab({
           )}
 
           {auditError && (
-            <div role="alert" className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-200">
+            <div
+              role="alert"
+              className="rounded-xl border border-rose-200 dark:border-rose-500/30 bg-rose-50 dark:bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-200"
+            >
               <strong>เกิดข้อผิดพลาด: </strong>
               {auditError}
             </div>
@@ -330,32 +327,32 @@ export default function AuditorScanTab({
 
           {runStats && (
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-center">
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5">
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">ความคืบหน้า</p>
-                <p className="text-sm font-bold tabular-nums text-slate-900 dark:text-white">
+              <div className="rounded-xl border border-zinc-200 dark:border-[#272727] bg-white dark:bg-[#181818] p-2.5">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">ความคืบหน้า</p>
+                <p className="text-sm font-bold tabular-nums text-zinc-900 dark:text-zinc-100">
                   {runStats.processedCount}/{runStats.totalScannedTarget}
                 </p>
               </div>
-              <div className="rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-500/5 p-2.5">
-                <p className="text-[11px] text-emerald-700 dark:text-emerald-300">ผ่านด่าน 1 ทันที</p>
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/70 dark:bg-emerald-500/10 p-2.5">
+                <p className="text-xs text-emerald-700 dark:text-emerald-300">ผ่านด่าน 1</p>
                 <p className="text-sm font-bold tabular-nums text-emerald-700 dark:text-emerald-400">
                   {runStats.stage1Verified}
                 </p>
               </div>
-              <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50/70 dark:bg-indigo-500/5 p-2.5">
-                <p className="text-[11px] text-indigo-700 dark:text-indigo-300">ตัด False Positive</p>
+              <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50/70 dark:bg-indigo-500/10 p-2.5">
+                <p className="text-xs text-indigo-700 dark:text-indigo-300">ตัด False Positive</p>
                 <p className="text-sm font-bold tabular-nums text-indigo-700 dark:text-indigo-300">
                   {runStats.stage2FalsePositivesCleared}
                 </p>
               </div>
               <div className="rounded-xl border border-rose-200 dark:border-rose-500/25 bg-rose-50/70 dark:bg-rose-500/10 p-2.5">
-                <p className="text-[11px] text-rose-700 dark:text-rose-300">ติด Flag ยืนยัน</p>
+                <p className="text-xs text-rose-700 dark:text-rose-300">ติด Flag ยืนยัน</p>
                 <p className="text-sm font-bold tabular-nums text-rose-700 dark:text-rose-400">
                   {runStats.stage0Flagged + runStats.stage2ConfirmedFlagged}
                 </p>
               </div>
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 col-span-2 sm:col-span-1">
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">API ใช้ไป</p>
+              <div className="rounded-xl border border-zinc-200 dark:border-[#272727] bg-white dark:bg-[#181818] p-2.5 col-span-2 sm:col-span-1">
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">API ใช้ไป</p>
                 <p className="text-xs font-bold tabular-nums text-indigo-700 dark:text-indigo-300 pt-0.5">
                   L:{runStats.stage1Requests} · S:{runStats.stage2Requests}
                 </p>

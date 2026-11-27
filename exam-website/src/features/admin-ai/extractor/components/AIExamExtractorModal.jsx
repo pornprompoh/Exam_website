@@ -37,40 +37,40 @@ export default function AIExamExtractorModal({
 
   const subHeader = (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="inline-flex rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 p-1">
+      <div className="inline-flex rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-100 dark:bg-[#1F1F1F] p-1">
         <button
           type="button"
           onClick={() => extractor.setActiveTab('extract')}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-300 ease-premium cursor-pointer ${
             extractor.activeTab === 'extract'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'bg-white dark:bg-[#272727] text-zinc-900 dark:text-zinc-100 shadow-xs'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
           }`}
         >
-          สกัดข้อสอบ (3-Pass)
+          สกัดข้อสอบ
         </button>
         <button
           type="button"
           onClick={() => extractor.setActiveTab('staging')}
-          className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors cursor-pointer inline-flex items-center gap-1.5 ${
+          className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-300 ease-premium cursor-pointer inline-flex items-center gap-1.5 ${
             extractor.activeTab === 'staging'
-              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              ? 'bg-white dark:bg-[#272727] text-zinc-900 dark:text-zinc-100 shadow-xs'
+              : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'
           }`}
         >
           <span>ตรวจสอบ Draft</span>
           <span
-            className={`rounded-md px-1.5 py-0.5 text-[11px] font-bold tabular-nums ${
+            className={`rounded-md px-1.5 py-0.5 text-xs font-semibold tabular-nums ${
               extractor.displayedDraftCount > 0
                 ? 'bg-amber-100 dark:bg-amber-500/20 text-amber-800 dark:text-amber-300'
-                : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                : 'bg-zinc-200 dark:bg-[#313131] text-zinc-500 dark:text-zinc-400'
             }`}
           >
             {extractor.displayedDraftCount}
           </span>
           {extractor.statusCounts.ai_overridden > 0 && (
             <span
-              className="rounded-md bg-rose-100 dark:bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-rose-700 dark:text-rose-300"
+              className="rounded-md bg-rose-100 dark:bg-rose-500/20 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-rose-700 dark:text-rose-300"
               title="ข้อที่ AI แก้เฉลย"
             >
               แก้เฉลย {extractor.statusCounts.ai_overridden}
@@ -80,12 +80,12 @@ export default function AIExamExtractorModal({
       </div>
 
       <div className="flex items-center gap-2 min-w-0">
-        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">หมวดหมู่:</span>
+        <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400 shrink-0">หมวดหมู่:</span>
         <select
           value={extractor.selectedCategory}
           disabled={extractor.isExtracting}
           onChange={(e) => extractor.handleCategoryChange(e.target.value)}
-          className="h-9 max-w-xs truncate rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 text-xs font-semibold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
+          className="h-9 max-w-xs truncate rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 dark:bg-[#1F1F1F] px-3 text-xs font-semibold text-zinc-900 dark:text-zinc-100 outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 cursor-pointer"
         >
           {categories?.map((cat) => (
             <option key={cat.id} value={cat.id}>
@@ -102,18 +102,17 @@ export default function AIExamExtractorModal({
       <AdminModalShell
         isOpen={isOpen}
         onClose={extractor.handleSafeClose}
-        title="AI ดึงข้อสอบจากไฟล์ (3-Pass Hybrid Extractor)"
-        subtitle="ขั้น 1 สกัดโจทย์+เฉลย → ขั้น 2 จับคู่เฉลยหนังสือ → ขั้น 3 ตรวจคัดกรอง (Lite) และฟันธง (Flash Standard)"
+        title="AI ดึงข้อสอบจากไฟล์"
         titleId="ai-exam-extractor-title"
         icon={<FileExtractIcon className="w-4 h-4" />}
         headerActions={
           <button
             type="button"
             onClick={onGoToSettings}
-            className="hidden sm:inline-flex items-center gap-1.5 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 text-xs font-semibold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-1.5 h-9 rounded-xl border border-zinc-200 dark:border-[#272727] bg-zinc-50 hover:bg-zinc-100 dark:bg-[#1F1F1F] dark:hover:bg-[#272727] px-3 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
             title="ตั้งค่า API Key และโมเดลหลัก"
           >
-            <SettingsIcon className="w-3.5 h-3.5 text-slate-400" />
+            <SettingsIcon className="w-3.5 h-3.5 text-zinc-400" />
             <span>
               {extractor.modelRoutingMode === 'hybrid'
                 ? 'Hybrid 2 ระดับ'
@@ -229,18 +228,16 @@ export default function AIExamExtractorModal({
         />
       )}
 
-      <div className="relative z-[1100]">
-        <ConfirmModal
-          isOpen={extractor.confirmState.isOpen}
-          type={extractor.confirmState.type}
-          title={extractor.confirmState.title}
-          description={<span className="whitespace-pre-line">{extractor.confirmState.description}</span>}
-          confirmText={extractor.confirmState.confirmText}
-          cancelText="ยกเลิก"
-          onClose={extractor.closeConfirm}
-          onConfirm={() => extractor.confirmState.onConfirm?.()}
-        />
-      </div>
+      <ConfirmModal
+        isOpen={extractor.confirmState.isOpen}
+        type={extractor.confirmState.type}
+        title={extractor.confirmState.title}
+        description={<span className="whitespace-pre-line">{extractor.confirmState.description}</span>}
+        confirmText={extractor.confirmState.confirmText}
+        cancelText="ยกเลิก"
+        onClose={extractor.closeConfirm}
+        onConfirm={() => extractor.confirmState.onConfirm?.()}
+      />
     </>
   )
 }

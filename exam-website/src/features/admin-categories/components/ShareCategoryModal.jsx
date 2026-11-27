@@ -58,7 +58,7 @@ export default function ShareCategoryModal({ isOpen, onClose, category, currentU
         return showModal('warning', 'ไม่พบผู้ใช้งาน', 'ไม่พบบัญชีผู้ใช้งานที่ใช้อีเมลนี้ในระบบ กรุณาตรวจสอบอีเมลอีกครั้ง')
       }
       if (userFound.id === currentUserId || userFound.id === category.created_by) {
-        return showModal('warning', 'เพิ่มไม่ได้', 'คุณหรือผู้ใช้นี้เป็นเจ้าของหลักของหมวดหมู่วิชานี้อยู่แล้ว')
+        return showModal('warning', 'เพิ่มไม่ได้', 'ผู้ใช้นี้เป็นเจ้าของหลักของหมวดหมู่วิชานี้อยู่แล้ว')
       }
       const currentCoOwners = category.co_owners || []
       if (currentCoOwners.includes(userFound.id)) {
@@ -68,7 +68,7 @@ export default function ShareCategoryModal({ isOpen, onClose, category, currentU
       await updateCategoryCoOwners(category.id, [...currentCoOwners, userFound.id])
       setCoOwnersList((prev) => [...prev, userFound])
       setEmailInput('')
-      showModal('success', 'เพิ่มเจ้าของร่วมสำเร็จ', `เพิ่ม ${userFound.display_name || userFound.email} เป็นผู้ร่วมดูแลวิชานี้เรียบร้อยแล้ว`)
+      showModal('success', 'เพิ่มเจ้าของร่วมสำเร็จ', `เพิ่ม ${userFound.display_name || userFound.email} เป็นผู้ร่วมดูแลวิชานี้แล้ว`)
       onSuccess?.()
     } catch (err) {
       showModal('danger', 'เกิดข้อผิดพลาด', 'ไม่สามารถเพิ่มเจ้าของร่วมได้: ' + err.message)
@@ -82,7 +82,7 @@ export default function ShareCategoryModal({ isOpen, onClose, category, currentU
       const updatedCoOwners = (category.co_owners || []).filter((id) => id !== removeUserId)
       await updateCategoryCoOwners(category.id, updatedCoOwners)
       setCoOwnersList((prev) => prev.filter((u) => u.id !== removeUserId))
-      showModal('success', 'ลบสิทธิ์สำเร็จ', 'นำผู้ร่วมดูแลออกจากหมวดหมู่วิชานี้เรียบร้อยแล้ว')
+      showModal('success', 'ลบสิทธิ์สำเร็จ', 'นำผู้ร่วมดูแลออกจากหมวดหมู่วิชานี้แล้ว')
       onSuccess?.()
     } catch (err) {
       showModal('danger', 'เกิดข้อผิดพลาด', err.message)
@@ -95,40 +95,40 @@ export default function ShareCategoryModal({ isOpen, onClose, category, currentU
     <div
       role="presentation"
       onClick={onClose}
-      className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4 bg-slate-950/55 dark:bg-black/75 backdrop-blur-xs animate-fadeIn"
+      className="fixed inset-0 z-60 overflow-hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
     >
       <section
         role="dialog"
         aria-modal="true"
         aria-labelledby="share-category-title"
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-6 z-10 animate-scaleUp space-y-5"
+        className="relative w-full max-w-lg bg-white dark:bg-[#181818] border border-zinc-200 dark:border-[#272727] rounded-2xl shadow-2xl p-6 z-10 animate-scaleUp space-y-5"
       >
-        <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between pb-4 border-b border-zinc-200 dark:border-[#272727]">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-200/80 dark:border-indigo-500/25 flex items-center justify-center shrink-0">
+            <span className="w-9 h-9 rounded-xl bg-zinc-100 dark:bg-[#1F1F1F] text-indigo-600 dark:text-indigo-400 border border-zinc-200 dark:border-[#272727] flex items-center justify-center shrink-0">
               <UsersIcon className="w-4 h-4" />
             </span>
             <div className="min-w-0">
-              <h3 id="share-category-title" className="text-base font-bold text-slate-900 dark:text-white truncate">
+              <h3 id="share-category-title" className="text-base font-bold text-zinc-900 dark:text-zinc-100 truncate">
                 แชร์สิทธิ์และเจ้าของร่วม
               </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">วิชา: {category.name}</p>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 truncate">{category.name}</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="ปิดหน้าต่าง"
-            className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center justify-center transition-colors cursor-pointer shrink-0"
+            className="w-9 h-9 rounded-xl bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1F1F1F] dark:hover:bg-[#272727] text-zinc-500 dark:text-zinc-400 flex items-center justify-center transition-colors duration-300 cursor-pointer shrink-0"
           >
             <CloseIcon className="w-4 h-4" />
           </button>
         </div>
 
         <form onSubmit={handleAddCoOwner} className="space-y-2">
-          <label htmlFor="co-owner-email" className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-            เชิญผู้ร่วมสร้างด้วยอีเมล (Creator / Admin)
+          <label htmlFor="co-owner-email" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+            เชิญผู้ร่วมสร้างด้วยอีเมล (Creator หรือ Admin)
           </label>
           <div className="flex gap-2">
             <input
@@ -138,62 +138,73 @@ export default function ShareCategoryModal({ isOpen, onClose, category, currentU
               placeholder="creator@example.com"
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
-              className="flex-1 h-10 px-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
+              className="flex-1 h-10 px-3.5 bg-zinc-50 dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#272727] rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono"
             />
             <button
               type="submit"
               disabled={searching || !emailInput.trim()}
-              className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl text-xs transition-colors cursor-pointer shrink-0 inline-flex items-center gap-1.5"
+              className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-semibold rounded-xl text-xs transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer shrink-0 inline-flex items-center gap-1.5"
             >
               <PlusIcon className="w-3.5 h-3.5" />
               <span>{searching ? 'กำลังค้นหา...' : 'เชิญ'}</span>
             </button>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            ผู้ที่ถูกเชิญจะสามารถเพิ่ม แก้ไข หรือลบข้อสอบในวิชานี้ได้
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            ผู้ที่ถูกเชิญสามารถเพิ่ม แก้ไข หรือลบข้อสอบในวิชานี้ได้
           </p>
         </form>
 
-        <div className="space-y-2.5 pt-2 border-t border-slate-200 dark:border-slate-800">
-          <div className="text-xs font-semibold text-slate-600 dark:text-slate-400">ผู้มีสิทธิ์จัดการวิชานี้</div>
+        <div className="space-y-2.5 pt-2 border-t border-zinc-200 dark:border-[#272727]">
+          <div className="text-xs font-semibold text-zinc-600 dark:text-zinc-400">ผู้มีสิทธิ์จัดการวิชานี้</div>
 
-          <div className="bg-slate-50/80 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 max-h-60 overflow-y-auto space-y-2">
-            <div className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+          <div className="bg-zinc-50 dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#272727] rounded-xl p-2 max-h-60 overflow-y-auto space-y-2">
+            <div className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-[#181818] border border-zinc-200 dark:border-[#272727]">
               <div className="flex items-center gap-2.5 min-w-0">
-                <span className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/25 font-bold flex items-center justify-center text-xs shrink-0">O</span>
+                <span className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-500/25 font-bold flex items-center justify-center text-xs shrink-0">
+                  O
+                </span>
                 <div className="min-w-0">
-                  <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">เจ้าของวิชาเริ่มต้น</div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">
+                  <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">เจ้าของวิชาเริ่มต้น</div>
+                  <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate">
                     ID: {category.created_by?.substring(0, 8)}...
                   </div>
                 </div>
               </div>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-500/25 shrink-0">เจ้าของหลัก</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-500/25 shrink-0">
+                เจ้าของหลัก
+              </span>
             </div>
 
             {loading ? (
-              <div className="text-center py-4 text-xs text-slate-500 font-medium">กำลังโหลดรายชื่อผู้ร่วมดูแล...</div>
+              <div className="text-center py-4 text-xs text-zinc-500 font-medium">กำลังโหลดรายชื่อผู้ร่วมดูแล...</div>
             ) : coOwnersList.length === 0 ? (
-              <div className="text-center py-4 text-xs text-slate-500 dark:text-slate-400">ยังไม่มีผู้ร่วมดูแลในวิชานี้</div>
+              <div className="text-center py-4 text-xs text-zinc-500 dark:text-zinc-400">ยังไม่มีผู้ร่วมดูแลในวิชานี้</div>
             ) : (
               coOwnersList.map((u) => (
-                <div key={u.id} className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800">
+                <div
+                  key={u.id}
+                  className="flex items-center justify-between p-2.5 rounded-lg bg-white dark:bg-[#181818] border border-zinc-200 dark:border-[#272727]"
+                >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/25 font-semibold flex items-center justify-center text-xs uppercase shrink-0">
                       {u.display_name?.charAt(0) || u.email?.charAt(0) || 'C'}
                     </span>
                     <div className="min-w-0">
-                      <div className="text-xs font-semibold text-slate-900 dark:text-white truncate">{u.display_name || 'Creator'}</div>
-                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-mono truncate">{u.email}</div>
+                      <div className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                        {u.display_name || 'Creator'}
+                      </div>
+                      <div className="text-xs text-zinc-500 dark:text-zinc-400 font-mono truncate">{u.email}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/25">เจ้าของร่วม</span>
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/25">
+                      เจ้าของร่วม
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleRemoveCoOwner(u.id)}
                       aria-label={`ลบสิทธิ์ของ ${u.email}`}
-                      className="w-7 h-7 text-slate-400 hover:text-rose-600 dark:text-slate-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer inline-flex items-center justify-center"
+                      className="w-7 h-7 text-zinc-400 hover:text-rose-600 dark:text-zinc-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg transition-colors duration-300 cursor-pointer inline-flex items-center justify-center"
                       title="ลบสิทธิ์"
                     >
                       <TrashIcon className="w-3.5 h-3.5" />
@@ -209,7 +220,7 @@ export default function ShareCategoryModal({ isOpen, onClose, category, currentU
           <button
             type="button"
             onClick={onClose}
-            className="h-9 px-4 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+            className="h-9 px-4 bg-zinc-100 hover:bg-zinc-200 dark:bg-[#1F1F1F] dark:hover:bg-[#272727] text-zinc-700 dark:text-zinc-200 font-semibold rounded-xl text-xs transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
           >
             ปิดหน้าต่าง
           </button>

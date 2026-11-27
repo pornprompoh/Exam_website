@@ -1,6 +1,54 @@
+import { useState } from 'react'
+import { useTheme } from '../../../shared/context/ThemeContext'
+import {
+  AlertTriangleIcon,
+  CheckCircleIcon,
+  EyeIcon,
+  EyeOffIcon,
+  KeyIcon,
+  MoonIcon,
+  ShieldCheckIcon,
+  SunIcon
+} from '../../../shared/components/AdminIcons'
 import useAuthForm from '../hooks/useAuthForm'
 
+function MailIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${className}`}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </svg>
+  )
+}
+
+function LockIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${className}`}>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  )
+}
+
+function ArrowLeftIcon({ className = 'w-4 h-4' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${className}`}>
+      <path d="M19 12H5M12 19l-7-7 7-7" />
+    </svg>
+  )
+}
+
+function BookMarkIcon({ className = 'w-6 h-6' }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className={`shrink-0 ${className}`}>
+      <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+    </svg>
+  )
+}
+
 export default function LoginPage() {
+  const { isDark, toggleTheme } = useTheme()
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const {
     activeTab,
     email,
@@ -18,39 +66,63 @@ export default function LoginPage() {
     handleAuth
   } = useAuthForm()
 
-  return (
-    <div className="h-dvh w-full bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-3 sm:p-5 selection:bg-indigo-500 selection:text-white relative overflow-hidden transition-colors duration-300">
-      <div className="absolute top-[-10%] left-[-10%] w-[30rem] h-[30rem] bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[30rem] h-[30rem] bg-violet-500/20 rounded-full blur-[100px] pointer-events-none" />
+  const passwordInputType = showPassword || isPasswordVisible ? 'text' : 'password'
 
-      <div className="w-full max-w-[420px] max-h-full bg-white dark:bg-slate-900 backdrop-blur-xl rounded-2xl shadow-xl shadow-indigo-100/40 dark:shadow-none border border-slate-100 dark:border-slate-800 p-5 sm:p-8 relative z-10 animate-fadeIn transition-colors duration-300">
-        <div className="text-center mb-5 sm:mb-6">
-          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-600 to-violet-600 text-white rounded-2xl flex items-center justify-center text-2xl sm:text-3xl shadow-lg shadow-indigo-500/30 mx-auto mb-3 hover:scale-105 transition-transform cursor-default">
-            {activeTab === 'forgot' ? '🔐' : activeTab === 'update-password' ? '🔑' : '💡'}
+  const inputBaseClass =
+    'w-full pl-10 pr-10 py-2.5 bg-zinc-50 dark:bg-[#1F1F1F] hover:bg-zinc-100/70 dark:hover:bg-[#272727] focus:bg-white dark:focus:bg-[#272727] border border-zinc-200 dark:border-[#313131] rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-300 ease-premium'
+
+  return (
+    <div className="min-h-dvh w-full bg-[#f8f8f9] dark:bg-[#000000] text-zinc-900 dark:text-zinc-100 flex items-center justify-center p-4 sm:p-6 relative transition-colors duration-300">
+      <button
+        type="button"
+        onClick={toggleTheme}
+        aria-label={isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
+        title={isDark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด'}
+        className="fixed top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 rounded-xl bg-white dark:bg-[#181818] border border-zinc-200 dark:border-[#272727] text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-[#272727] flex items-center justify-center transition-all duration-300 ease-premium active:scale-[0.98] cursor-pointer"
+      >
+        {isDark ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
+      </button>
+
+      <div className="w-full max-w-[420px] bg-white dark:bg-[#181818] rounded-2xl border border-zinc-200 dark:border-[#272727] shadow-sm dark:shadow-none p-6 sm:p-8 animate-fadeIn">
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 bg-indigo-600 text-white rounded-xl flex items-center justify-center mx-auto mb-3.5">
+            {activeTab === 'forgot' ? (
+              <ShieldCheckIcon className="w-6 h-6" />
+            ) : activeTab === 'update-password' ? (
+              <KeyIcon className="w-6 h-6" />
+            ) : (
+              <BookMarkIcon className="w-6 h-6" />
+            )}
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-1">
-            {activeTab === 'forgot' ? 'กู้คืนรหัสผ่าน' : activeTab === 'update-password' ? 'ตั้งรหัสผ่านใหม่' : (
-              <>EXAM<span className="text-indigo-600">BANK</span></>
+          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 tracking-tight">
+            {activeTab === 'forgot' ? (
+              'กู้คืนรหัสผ่าน'
+            ) : activeTab === 'update-password' ? (
+              'ตั้งรหัสผ่านใหม่'
+            ) : (
+              <>
+                EXAM<span className="text-indigo-600 dark:text-indigo-400">BANK</span>
+              </>
             )}
           </h1>
-          <p className="text-[11px] sm:text-sm font-medium text-slate-500 dark:text-slate-400">
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 leading-relaxed">
             {activeTab === 'forgot'
               ? 'กรอกอีเมลของคุณเพื่อรับลิงก์ตั้งรหัสผ่านใหม่'
               : activeTab === 'update-password'
-                ? 'กรุณากำหนดรหัสผ่านใหม่ของคุณที่ปลอดภัยยิ่งขึ้น'
+                ? 'กำหนดรหัสผ่านใหม่ที่ปลอดภัยสำหรับบัญชีของคุณ'
                 : 'แพลตฟอร์มคลังข้อสอบและแบบทดสอบออนไลน์'}
           </p>
         </div>
 
         {activeTab !== 'forgot' && activeTab !== 'update-password' && (
-          <div className="flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl mb-5 border border-slate-200 dark:border-slate-700 shadow-inner">
+          <div className="grid grid-cols-2 p-1 bg-zinc-100 dark:bg-[#1F1F1F] rounded-xl mb-6 border border-zinc-200 dark:border-[#272727]">
             <button
               type="button"
               onClick={() => handleTabChange('login')}
-              className={`flex-1 py-2.5 text-xs sm:text-sm font-black rounded-xl transition-all cursor-pointer ${
+              className={`py-2 text-sm font-semibold rounded-lg transition-all duration-300 ease-premium cursor-pointer ${
                 activeTab === 'login'
-                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                  ? 'bg-white dark:bg-[#272727] text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/80 dark:border-[#313131]'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
               }`}
             >
               เข้าสู่ระบบ
@@ -58,10 +130,10 @@ export default function LoginPage() {
             <button
               type="button"
               onClick={() => handleTabChange('register')}
-              className={`flex-1 py-2.5 text-xs sm:text-sm font-black rounded-xl transition-all cursor-pointer ${
+              className={`py-2 text-sm font-semibold rounded-lg transition-all duration-300 ease-premium cursor-pointer ${
                 activeTab === 'register'
-                  ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm border border-slate-200 dark:border-slate-600'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-700/50'
+                  ? 'bg-white dark:bg-[#272727] text-zinc-900 dark:text-zinc-100 shadow-2xs border border-zinc-200/80 dark:border-[#313131]'
+                  : 'text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200'
               }`}
             >
               สมัครสมาชิก
@@ -70,124 +142,161 @@ export default function LoginPage() {
         )}
 
         {errorMsg && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-2xl text-xs sm:text-sm font-bold text-red-600 flex items-start gap-2.5 animate-fadeIn">
-            <span className="text-base leading-none mt-0.5">⚠️</span>
-            <span>{errorMsg}</span>
+          <div
+            role="alert"
+            className="mb-4 p-3.5 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/25 rounded-xl text-sm font-medium text-rose-700 dark:text-rose-300 flex items-start gap-2.5 animate-fadeIn"
+          >
+            <AlertTriangleIcon className="w-4 h-4 mt-0.5 text-rose-600 dark:text-rose-400" />
+            <span className="leading-relaxed">{errorMsg}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs sm:text-sm font-bold text-emerald-700 flex items-start gap-2.5 animate-fadeIn">
-            <span className="text-base leading-none mt-0.5">✨</span>
-            <span>{successMsg}</span>
+          <div
+            role="status"
+            className="mb-4 p-3.5 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/25 rounded-xl text-sm font-medium text-emerald-700 dark:text-emerald-300 flex items-start gap-2.5 animate-fadeIn"
+          >
+            <CheckCircleIcon className="w-4 h-4 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+            <span className="leading-relaxed">{successMsg}</span>
           </div>
         )}
 
-        <form onSubmit={handleAuth} className="space-y-3 sm:space-y-4 animate-slideUp">
+        <form onSubmit={handleAuth} className="space-y-4">
           {activeTab === 'update-password' ? (
             <>
               <div>
-                <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 pl-1">
-                  รหัสผ่านใหม่ (New Password)
+                <label htmlFor="new-password" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  รหัสผ่านใหม่
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">🔒</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none">
+                    <LockIcon className="w-4 h-4" />
+                  </span>
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    id="new-password"
+                    type={passwordInputType}
                     required
                     minLength={6}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm tracking-widest"
+                    placeholder="กรอกรหัสผ่านใหม่"
+                    className={inputBaseClass}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setIsPasswordVisible((prev) => !prev)}
+                    aria-label={isPasswordVisible ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                  >
+                    {isPasswordVisible ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 pl-1">
-                  ยืนยันรหัสผ่านใหม่ (Confirm New Password)
+                <label htmlFor="confirm-new-password" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  ยืนยันรหัสผ่านใหม่
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">🔒</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none">
+                    <LockIcon className="w-4 h-4" />
+                  </span>
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    id="confirm-new-password"
+                    type={passwordInputType}
                     required
                     minLength={6}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm tracking-widest"
+                    placeholder="กรอกรหัสผ่านใหม่อีกครั้ง"
+                    className={inputBaseClass}
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 font-bold mt-2 pl-1">* ความยาวอย่างน้อย 6 ตัวอักษร</p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1.5">ความยาวอย่างน้อย 6 ตัวอักษร</p>
               </div>
             </>
           ) : (
             <>
               <div>
-                <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 pl-1">
-                  อีเมล (Email)
+                <label htmlFor="auth-email" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                  อีเมล
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">✉️</span>
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none">
+                    <MailIcon className="w-4 h-4" />
+                  </span>
                   <input
+                    id="auth-email"
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="student@example.com"
-                    className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm"
+                    className="w-full pl-10 pr-4 py-2.5 bg-zinc-50 dark:bg-[#1F1F1F] hover:bg-zinc-100/70 dark:hover:bg-[#272727] focus:bg-white dark:focus:bg-[#272727] border border-zinc-200 dark:border-[#313131] rounded-xl text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all duration-300 ease-premium"
                   />
                 </div>
               </div>
 
               {activeTab !== 'forgot' && (
                 <div>
-                  <div className="flex items-center justify-between mb-2 pl-1 pr-1">
-                    <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
-                      รหัสผ่าน (Password)
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="auth-password" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+                      รหัสผ่าน
                     </label>
                     {activeTab === 'login' && (
                       <button
                         type="button"
                         onClick={() => handleTabChange('forgot')}
-                        className="text-[11px] sm:text-xs font-bold text-indigo-500 hover:text-indigo-700 transition-colors cursor-pointer"
+                        className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors cursor-pointer"
                       >
                         ลืมรหัสผ่าน?
                       </button>
                     )}
                   </div>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">🔒</span>
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none">
+                      <LockIcon className="w-4 h-4" />
+                    </span>
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      id="auth-password"
+                      type={passwordInputType}
                       required
                       minLength={6}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm tracking-widest"
+                      placeholder="กรอกรหัสผ่าน"
+                      className={inputBaseClass}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setIsPasswordVisible((prev) => !prev)}
+                      aria-label={isPasswordVisible ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                    >
+                      {isPasswordVisible ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
               )}
 
               {activeTab === 'register' && (
                 <div>
-                  <label className="block text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 pl-1">
-                    ยืนยันรหัสผ่าน (Confirm Password)
+                  <label htmlFor="auth-confirm-password" className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300 mb-1.5">
+                    ยืนยันรหัสผ่าน
                   </label>
                   <div className="relative">
-                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" aria-hidden="true">🔒</span>
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400 dark:text-zinc-500 pointer-events-none">
+                      <LockIcon className="w-4 h-4" />
+                    </span>
                     <input
-                      type={showPassword ? 'text' : 'password'}
+                      id="auth-confirm-password"
+                      type={passwordInputType}
                       required
                       minLength={6}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:focus:ring-indigo-950 focus:bg-white dark:focus:bg-slate-800 transition-all shadow-sm tracking-widest"
+                      placeholder="กรอกรหัสผ่านอีกครั้ง"
+                      className={inputBaseClass}
                     />
                   </div>
                 </div>
@@ -198,35 +307,33 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-sm transition-all shadow-md hover:shadow-indigo-500/30 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-3 cursor-pointer"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-semibold rounded-xl text-sm transition-all duration-300 ease-premium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2 cursor-pointer"
           >
-            {loading ? (
-              <span>กำลังดำเนินการ...</span>
-            ) : activeTab === 'register' ? (
-              <span>✨ สมัครสมาชิกใหม่</span>
-            ) : activeTab === 'forgot' ? (
-              <span>✉️ ส่งลิงก์รีเซ็ตรหัสผ่าน</span>
-            ) : activeTab === 'update-password' ? (
-              <span>🔑 บันทึกรหัสผ่านใหม่</span>
-            ) : (
-              <span>🚀 เข้าสู่ระบบ</span>
-            )}
+            {loading
+              ? 'กำลังดำเนินการ...'
+              : activeTab === 'register'
+                ? 'สมัครสมาชิก'
+                : activeTab === 'forgot'
+                  ? 'ส่งลิงก์รีเซ็ตรหัสผ่าน'
+                  : activeTab === 'update-password'
+                    ? 'บันทึกรหัสผ่านใหม่'
+                    : 'เข้าสู่ระบบ'}
           </button>
         </form>
 
         {activeTab === 'login' && (
-          <div className="mt-4 animate-fadeIn">
+          <div className="mt-5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
-              <span className="text-[11px] font-bold text-slate-400">หรือ</span>
-              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
+              <div className="h-px flex-1 bg-zinc-200 dark:bg-[#272727]" />
+              <span className="text-xs font-medium text-zinc-400 dark:text-zinc-500">หรือ</span>
+              <div className="h-px flex-1 bg-zinc-200 dark:bg-[#272727]" />
             </div>
 
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full py-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 font-semibold rounded-xl text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full py-2.5 bg-white dark:bg-[#1F1F1F] border border-zinc-200 dark:border-[#313131] text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-[#272727] active:scale-[0.98] font-semibold rounded-xl text-sm transition-all duration-300 ease-premium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2.5 cursor-pointer"
             >
               {loading ? (
                 <span>กำลังเชื่อมต่อกับ Google...</span>
@@ -246,13 +353,14 @@ export default function LoginPage() {
         )}
 
         {activeTab === 'forgot' && (
-          <div className="mt-8 text-center animate-fadeIn">
+          <div className="mt-6 text-center">
             <button
               type="button"
               onClick={() => handleTabChange('login')}
-              className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer flex items-center justify-center gap-1.5 mx-auto"
+              className="text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors cursor-pointer inline-flex items-center justify-center gap-1.5"
             >
-              <span>←</span><span>กลับไปหน้าเข้าสู่ระบบ</span>
+              <ArrowLeftIcon className="w-4 h-4" />
+              <span>กลับไปหน้าเข้าสู่ระบบ</span>
             </button>
           </div>
         )}
